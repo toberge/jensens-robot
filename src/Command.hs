@@ -1,19 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Command (
-      isCommand
-    , getCommand
-    , parseAndExecute
-      ) where
+
+module Command
+  ( isCommand,
+    getCommand,
+    parseAndExecute,
+  )
+where
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import Text.Parsec
 import Text.Printf
 
-import Text.Parsec
-
-data Command = Echo Text
-             | Ping
-             deriving (Show, Eq)
+data Command
+  = Echo Text
+  | Ping
+  deriving (Show, Eq)
 
 isCommand :: Text -> Bool
 isCommand = ("!" `T.isPrefixOf`)
@@ -23,6 +25,7 @@ getCommand = T.drop 1 . head . T.words
 
 -- stolen from StackOverflow
 type Parser = Parsec T.Text ()
+
 type GenParser t st = Parsec T.Text st
 
 -- Wrapper funs
@@ -43,26 +46,26 @@ whitespace = skipMany $ oneOf " \t\n\r"
 
 parseCommand :: Parser Command
 parseCommand = do
-    _ <- char '!'
-    choice [parsePing, parseEcho]
+  _ <- char '!'
+  choice [parsePing, parseEcho]
 
-parseArgs = many (whitespace *> many1 ( noneOf " "))
+parseArgs = many (whitespace *> many1 (noneOf " "))
 
 parseInt :: Parser Int
 parseInt = do
-    num <- many1 (oneOf "1234567890")
-    return $ read num
+  num <- many1 (oneOf "1234567890")
+  return $ read num
 
 parsePing :: Parser Command
 parsePing = do
-    _ <- string "ping"
-    return Ping
+  _ <- string "ping"
+  return Ping
 
 parseEcho :: Parser Command
 parseEcho = do
-    _ <- string "echo"
-    args <- parseArgs -- todo these are not just args though
-    return $ Echo (T.unwords $ map T.pack args)
+  _ <- string "echo"
+  args <- parseArgs -- todo these are not just args though
+  return $ Echo (T.unwords $ map T.pack args)
 
 exec :: Command -> Text
 exec (Echo text) = text
