@@ -31,5 +31,6 @@ list = "list"
 size = "size"
 range = ".."
 reverse = "reverse"
+member = "member"
 
 whatIf = "if"

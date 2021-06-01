@@ -9,8 +9,10 @@ module Command
 
 import           Control.Monad.Trans            ( lift )
 import qualified Data.Map                      as M
+import           Data.Maybe
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
+import qualified Data.Text.IO                  as TIO
 import           Text.Printf
 
 import           Discord
@@ -52,6 +54,7 @@ commandList =
   , ("help" , help)
   , ("hjelp", help)
   , ("test" , test)
+  , ("blame", blame)
   , ("lisp" , lisp)
   ]
 
@@ -65,9 +68,11 @@ execute m = do
 
 helpText =
   "Rørleggeren støtter følgende kommandoer:\n\
-  \`echo <whatever>` sier det du vil tilbake, alias `ekko`\n\
-  \`roll` for å kaste terning\n\
-  \`ping` ... pong"
+  \`!echo <whatever>` sier det du vil tilbake, alias `ekko`\n\
+  \`!roll` for å kaste terning\n\
+  \`!blame` for å legge skyla på noen andre\n\
+  \`!lisp <kode>` for å kjøre litt Lisp\n\
+  \`!ping` ... pong"
 
 reportError err m = do
   _ <- restCall (R.CreateMessage (messageChannel m) err)
@@ -81,7 +86,33 @@ ping m = do
   _ <- restCall (R.CreateMessage (messageChannel m) "pong")
   pure ()
 
+blame m = do
+  members' <- restCall
+    (R.ListGuildMembers (fromJust $ messageGuild m)
+                        (R.GuildMembersTiming (Just 100) Nothing)
+    )
+  _ <- case members' of
+    Right members -> do
+      -- Pick a random user
+      index <- lift $ randomRIO (0, length members - 1)
+      let id = userId $ memberUser $ members !! index
+      -- Then blame them!
+      _ <- restCall
+        ( R.CreateMessage (messageChannel m)
+        $ T.concat ["<@", T.pack $ show id, ">", " har skylda"]
+        )
+      pure ()
+    Left (RestCallErrorCode code msg extra) -> do
+      -- Just display the error...
+      _ <- restCall
+        ( R.CreateMessage (messageChannel m)
+        $ T.concat [T.pack $ show code, " ", msg, " ", extra]
+        )
+      pure ()
+  pure ()
+
 lisp m = do
+  let result = evalLisp $ T.unpack $ getArgString $ messageText m
   _ <- case result of
     Left parseError ->
       restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
@@ -99,10 +130,7 @@ lisp m = do
         , createEmbedDescription = T.concat
           ["```lisp\n", T.pack (showAST actualResult), "\n```"]
         }
-
-
   pure ()
-  where result = evalLisp $ T.unpack $ getArgString $ messageText m
 
 echo m = do
   _ <- if length (T.words $ messageText m) > 1

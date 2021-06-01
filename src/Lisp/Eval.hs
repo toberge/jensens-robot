@@ -57,6 +57,15 @@ lispBinaryOpGeneric name op = fun
 isI32 (I32 _) = True
 isI32 _       = False
 
+isList (Lst _) = True
+isList _       = False
+
+isValid (Err _) = False
+isValid _       = True
+
+getList (Lst xs) = xs
+getList _        = [Err "wtf"]
+
 -- Wrapper for binary functions that should work on multiple values
 lispMultiOp :: String -> (Int -> Int -> Int) -> ([AST] -> AST)
 lispMultiOp name op = fun
@@ -81,8 +90,15 @@ lispSize _ = Err "Kan bare finne størrelsen til én ting"
 
 lispReverse [node] = case eval node of
   (Lst xs) -> Lst $ reverse xs
-  _        -> Err "Kan ikke reversere til noe som ikke er ei liste"
-lispReverse _ = Err "Kan bare reversere én ting"
+  _        -> Err "Kan ikke reversere noe som ikke er ei liste"
+lispReverse _ = Err "Kan bare reversere én liste"
+
+lispMember [x', list'] | isList list && isValid x = Boo $ elem x $ getList list
+                       | otherwise = Err "Requires an element and a list"
+ where
+  list = eval list'
+  x    = eval x'
+
 
 lispRange = lispBinaryOpGeneric ".." range
   where range a b = Lst (map I32 [a .. b])
@@ -111,6 +127,7 @@ builtinList =
   , (E.list          , lispList)
   , (E.size          , lispSize)
   , (E.reverse       , lispReverse)
+  , (E.member        , lispMember)
   , (E.range         , lispRange)
   , (E.equal         , lispBinaryOp E.equal (==))
   , (E.greaterOrEqual, lispBinaryOp E.greaterOrEqual (>=))
