@@ -26,6 +26,9 @@ dependencies:
 - parsec
 - unliftio
 - text >= 1.2.2
+- containers
+- random
+- mtl
 
 library:
   source-dirs: src
