@@ -31,6 +31,7 @@ library
       Lisp.Eval
       Lisp.Parser
       Lisp.Types
+      Quotes
   other-modules:
       Paths_jensens
   hs-source-dirs:

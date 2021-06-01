@@ -24,6 +24,7 @@ import           System.Random
 import qualified Emoji                         as E
 import           Lisp.Eval
 import           Lisp.Types
+import           Quotes
 
 -- Some helper functions
 
@@ -65,6 +66,7 @@ commandList =
   , ("katter"   , cats)
   , ("quote"    , quote)
   , ("sitat"    , quote)
+  , ("donn"     , donn)
   , ("help"     , help)
   , ("hjelp"    , help)
   , ("test"     , test)
@@ -142,9 +144,13 @@ cats m = do
   pure ()
 
 quote m = do
-  _ <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
-    { createEmbedDescription = "> Patch your shit\n- Donn Morrison, 2020"
-    }
+  pickedQuote <- choice quotes
+  _ <- restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
+  pure ()
+
+donn m = do
+  pickedQuote <- choice donnJokes
+  _ <- restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
   pure ()
 
 lisp m = do
