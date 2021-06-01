@@ -34,7 +34,8 @@ getCommand :: Text -> Text
 getCommand = T.drop 1 . head . T.words
 
 getArgString :: Text -> Text
-getArgString = T.unwords . tail . T.words
+getArgString text = maybe "" (\pos -> snd $ T.splitAt (pos + 1) text) maybePos
+  where maybePos = T.findIndex (== ' ') text
 
 -- The commands!
 
@@ -52,8 +53,10 @@ commandList =
 commands = M.fromList commandList
 
 execute m = do
-  maybe (reportError "No such command" m) (\f -> f m) res
-  where res = M.lookup (getCommand $ messageText m) commands
+  maybe (reportError "Det fins ingen kommando" m) (\f -> f m) res
+ where
+  res = M.lookup cmd commands
+  cmd = getCommand $ messageText m
 
 helpText =
   "Rørleggeren støtter følgende kommandoer:\n\
@@ -78,7 +81,7 @@ echo m = do
     then restCall
       (R.CreateMessage (messageChannel m) (getArgString (messageText m)))
     else restCall
-      (R.CreateMessage (messageChannel m) "Echo requires an argument")
+      (R.CreateMessage (messageChannel m) "Trenger et argument, kamerat")
   pure ()
 
 roll m = do
