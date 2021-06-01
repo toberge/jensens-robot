@@ -27,7 +27,6 @@ library
   exposed-modules:
       Command
       Emoji
-      Language.Parser
       Lisp.Eval
       Lisp.Parser
       Lisp.Types

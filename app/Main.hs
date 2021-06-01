@@ -7,6 +7,7 @@ import           Command
 import           Control.Monad                  ( unless
                                                 , when
                                                 )
+import           Control.Monad.Trans            ( lift )
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as TIO
 import           Discord
@@ -30,7 +31,7 @@ main = do
 startHandler :: DiscordHandler ()
 startHandler = do
   let activity = Activity { activityName = "avansert rørlegging"
-                          , activityType = ActivityTypeGame
+                          , activityType = ActivityTypeCompeting
                           , activityUrl  = Nothing
                           }
   let opts = UpdateStatusOpts { updateStatusOptsSince     = Nothing
@@ -50,6 +51,27 @@ eventHandler event = case event of
     when (isCommand (messageText m)) $ do
       _ <- execute m
       pure ()
+
+  MessageReactionAdd r -> do
+    -- Handle bookmarking reactions (TODO split into its own file if it becomes big)
+    when (emojiName (reactionEmoji r) == "🔖") $ do
+      Right m <- restCall
+        $ R.GetChannelMessage (reactionChannelId r, reactionMessageId r)
+      let count = messageReactionCount
+            (head $ filter (\r -> emojiName (messageReactionEmoji r) == "🔖")
+                           (messageReactions m)
+            )
+      -- TODO check message content & make this have an actual effect
+      when (count > 4) $ do
+        _ <- restCall
+          (R.CreateMessage (reactionChannelId r) $ T.concat
+            [ "Sitatforslaget fra <@"
+            , T.pack $ show $ userId (messageAuthor m)
+            , "> bør legges til"
+            ]
+          )
+        pure ()
+
 
 fromBot :: Message -> Bool
 fromBot m = userIsBot (messageAuthor m)
