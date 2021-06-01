@@ -3,14 +3,24 @@ module Emoji where
 -- TODO Textify & use emojis from the actual server
 
 -- | Alternate error thing
-err2 = "<:bonk:617719402858676224>"
+err2 = "<:dumpster:839475235530080338>"
 
 -- | For error messages
-err = "<:cry:377926158588706823>"
+err = "<:lejosstor:692329957162090577>"
 
-done = "<:wahwah:537368092490072064>"
+-- | Alternatives for error messages
+errs =
+  [ "<:lejos:692328492972638238>"
+  , "<:lejosstor:692329957162090577>"
+  , "<:dumpster:839475235530080338>"
+  , "<:brumm:806467395694231604>"
+  ]
 
-nope = "<:sigh:406438924597067776>"
+done = "<:donn:836899970330001408>"
+
+nope = "<:bonk:804639608415191041>"
+
+bonk = "<:bonk:804639608415191041>"
 
 -- | Lisp functions
 
@@ -20,17 +30,17 @@ times = "*"
 divide = "/"
 power = "^"
 
-equal = "=="
-greater = ">"
-less = "<"
-greaterOrEqual = ">="
-lessOrEqual = "<="
-notEqual = "!="
+equal = "<:round:707185921379795025>"
+greater = "<:gr:814410373724897281>"
+less = "<:hamstar:717345501682466852>"
+greaterOrEqual = "<:gr:814410373724897281><:round:707185921379795025>"
+lessOrEqual = "<:hamstar:717345501682466852><:round:707185921379795025>"
+notEqual = "<:bonk:804639608415191041><:round:707185921379795025>"
 
-list = "list"
-size = "size"
-range = ".."
-reverse = "reverse"
-member = "member"
+list = "<:binwok:758966442350870560>"
+size = "<:bigcat:831866342164529193>"
+range = "<:spillsyltetoy:718072970332995665>"
+reverse = "<:kat:821343254225485853>"
+member = "<:eg:803547525415567411>"
 
-whatIf = "if"
+whatIf = "<:brumm:806467395694231604>"

@@ -47,31 +47,34 @@ getArgString text = maybe "" (\pos -> snd $ T.splitAt (pos + 1) text) maybePos
 
 commandList :: [(Text, Message -> DiscordHandler ())]
 commandList =
-  [ ("echo" , echo)
-  , ("ekko" , echo)
-  , ("ping" , ping)
-  , ("roll" , roll)
-  , ("help" , help)
-  , ("hjelp", help)
-  , ("test" , test)
-  , ("blame", blame)
-  , ("lisp" , lisp)
+  [ ("echo"     , echo)
+  , ("ekko"     , echo)
+  , ("ping"     , ping)
+  , ("roll"     , roll)
+  , ("help"     , help)
+  , ("hjelp"    , help)
+  , ("test"     , test)
+  , ("blame"    , blame)
+  , ("lisp"     , lisp)
+  , ("lispHelp" , lispHelp)
+  , ("lispHjelp", lispHelp)
   ]
 
 commands = M.fromList commandList
 
 execute m = do
-  maybe (reportError "Det fins ingen kommando" m) (\f -> f m) res
+  maybe (reportError msg m) (\f -> f m) res
  where
   res = M.lookup cmd commands
   cmd = getCommand $ messageText m
+  msg = T.concat [T.pack E.bonk, " ", cmd, " er ingen kommando – prøv !hjelp"]
 
 helpText =
-  "Rørleggeren støtter følgende kommandoer:\n\
-  \`!echo <whatever>` sier det du vil tilbake, alias `ekko`\n\
+  "`!echo <whatever>` sier det du vil tilbake, alias `ekko`\n\
   \`!roll` for å kaste terning\n\
-  \`!blame` for å legge skyla på noen andre\n\
+  \`!blame` for å legge skylda på noen andre\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
+  \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
   \`!ping` ... pong"
 
 reportError err m = do
@@ -79,7 +82,10 @@ reportError err m = do
   pure ()
 
 help m = do
-  _ <- restCall (R.CreateMessage (messageChannel m) helpText)
+  _ <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+    { createEmbedTitle       = "Rørleggeren støtter følgende kommandoer:"
+    , createEmbedDescription = helpText
+    }
   pure ()
 
 ping m = do
@@ -113,15 +119,17 @@ blame m = do
 
 lisp m = do
   let result = evalLisp $ T.unpack $ getArgString $ messageText m
+  errIndex <- lift $ randomRIO (0, length E.errs - 1)
+  let err = T.pack $ E.errs !! errIndex
   _ <- case result of
     Left parseError ->
       restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
-        { createEmbedTitle       = T.concat [T.pack E.err, " Parse error"]
+        { createEmbedTitle       = T.concat [err, " Parse error"]
         , createEmbedDescription = T.pack $ show parseError
         }
     Right (Err evalError) ->
       restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
-        { createEmbedTitle       = T.concat [T.pack E.err, " Runtime error"]
+        { createEmbedTitle       = T.concat [err, " Runtime error"]
         , createEmbedDescription = T.pack evalError
         }
     Right actualResult ->
@@ -130,6 +138,21 @@ lisp m = do
         , createEmbedDescription = T.concat
           ["```lisp\n", T.pack (showAST actualResult), "\n```"]
         }
+  pure ()
+
+lispHelp m = do
+  _ <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+    { createEmbedTitle       = "Hvordan funker dette? :thinking:"
+    , createEmbedDescription = T.concat
+      [ "`(i (lisp er (alt mulig) (inne (i parenteser))))`\n\n\
+      \Prøv deg fram, noen funksjoner er vanlige symboler (+ 1 1) mens andre er emotes"
+      , " ("
+      , T.pack E.list
+      , " 1 2 3).\n"
+      , "(og jeg gadd ikke å la dere jobbe med annet enn tall – enda)\n\n"
+      , "Til slutt: Dette er _ikke_ en veldig sofistikert Lisp-variant, den har fint lite og ingenting."
+      ]
+    }
   pure ()
 
 echo m = do
