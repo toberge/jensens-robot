@@ -96,18 +96,18 @@ helpText =
   \`!ping` ... pong"
 
 reportError err m = do
-  _ <- restCall (R.CreateMessage (messageChannel m) err)
+  restCall (R.CreateMessage (messageChannel m) err)
   pure ()
 
 help m = do
-  _ <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+  restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Rørleggeren støtter følgende kommandoer:"
     , createEmbedDescription = helpText
     }
   pure ()
 
 ping m = do
-  _ <- restCall (R.CreateMessage (messageChannel m) "pong")
+  restCall (R.CreateMessage (messageChannel m) "pong")
   pure ()
 
 blame m = do
@@ -115,20 +115,20 @@ blame m = do
     (R.ListGuildMembers (fromJust $ messageGuild m)
                         (R.GuildMembersTiming (Just 100) Nothing)
     )
-  _ <- case members' of
+  case members' of
     Right members -> do
       -- Pick a random user
       member <- choice members
       let id = userId $ memberUser member
       -- Then blame them!
-      _ <- restCall
+      restCall
         ( R.CreateMessage (messageChannel m)
         $ T.concat ["<@", T.pack $ show id, ">", " har skylda"]
         )
       pure ()
     Left (RestCallErrorCode code msg extra) -> do
       -- Just display the error...
-      _ <- restCall
+      restCall
         ( R.CreateMessage (messageChannel m)
         $ T.concat [T.pack $ show code, " ", msg, " ", extra]
         )
@@ -137,7 +137,7 @@ blame m = do
 
 cats m = do
   cat <- choice E.cats
-  _   <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+  restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Kattebilde, liksom"
     , createEmbedDescription = cat
     }
@@ -145,18 +145,18 @@ cats m = do
 
 quote m = do
   pickedQuote <- choice quotes
-  _ <- restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
+  restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
   pure ()
 
 donn m = do
   pickedQuote <- choice donnJokes
-  _ <- restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
+  restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
   pure ()
 
 lisp m = do
   let result = evalLisp $ T.unpack $ getArgString $ messageText m
   err <- choice E.errs
-  _   <- case result of
+  case result of
     Left parseError ->
       restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
         { createEmbedTitle       = T.concat [err, " Parse error"]
@@ -176,7 +176,7 @@ lisp m = do
   pure ()
 
 lispHelp m = do
-  _ <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+  restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Hvordan funker dette? :thinking:"
     , createEmbedDescription = T.concat
       [ "`(i (lisp er (alt mulig) (inne (i parenteser))))`\n\n\
@@ -191,7 +191,7 @@ lispHelp m = do
   pure ()
 
 echo m = do
-  _ <- if length (T.words $ messageText m) > 1
+  if length (T.words $ messageText m) > 1
     then restCall
       (R.CreateMessage (messageChannel m) (getArgString (messageText m)))
     else restCall
@@ -200,14 +200,14 @@ echo m = do
 
 roll m = do
   num <- lift $ randomRIO (1, 6 :: Int)
-  _   <- restCall
+  restCall
     (R.CreateMessage (messageChannel m)
                      (T.concat [":game_die: **", T.pack $ show num, "**"])
     )
   pure ()
 
 test m = do
-  _ <- restCall
+  restCall
     (R.CreateMessageEmbed (messageChannel m) "" $ def
       { createEmbedTitle       = "Jensens rørleggerservice"
       , createEmbedDescription = "Vi leverer bare rør"

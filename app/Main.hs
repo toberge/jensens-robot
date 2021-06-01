@@ -45,11 +45,11 @@ eventHandler :: Event -> DiscordHandler ()
 eventHandler event = case event of
   MessageCreate m -> unless (fromBot m) $ do
     when (mentionsMe (messageText m)) $ do
-      _ <- restCall (R.CreateReaction (messageChannel m, messageId m) "eyes")
+      restCall (R.CreateReaction (messageChannel m, messageId m) "eyes")
       pure ()
     -- threadDelay (4 * 10^6)
     when (isCommand (messageText m)) $ do
-      _ <- execute m
+      execute m
       pure ()
 
   MessageReactionAdd r -> do
@@ -63,7 +63,7 @@ eventHandler event = case event of
             )
       -- TODO check message content & make this have an actual effect
       when (count > 4) $ do
-        _ <- restCall
+        restCall
           (R.CreateMessage (reactionChannelId r) $ T.concat
             [ "Sitatforslaget fra <@"
             , T.pack $ show $ userId (messageAuthor m)
