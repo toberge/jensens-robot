@@ -1,4 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Emoji where
+
+import           Data.Text                      ( Text )
 
 -- TODO Textify & use emojis from the actual server
 
@@ -9,11 +13,20 @@ err2 = "<:dumpster:839475235530080338>"
 err = "<:lejosstor:692329957162090577>"
 
 -- | Alternatives for error messages
+errs :: [Text]
 errs =
   [ "<:lejos:692328492972638238>"
   , "<:lejosstor:692329957162090577>"
   , "<:dumpster:839475235530080338>"
   , "<:brumm:806467395694231604>"
+  ]
+
+-- | Substitute for cat photos
+cats :: [Text]
+cats =
+  [ "<:kat:821343254225485853>"
+  , "<:bigcat:831866342164529193>"
+  , "<:impostor:839474040863195166>"
   ]
 
 done = "<:donn:836899970330001408>"

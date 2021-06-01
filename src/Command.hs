@@ -43,6 +43,14 @@ getArgString :: Text -> Text
 getArgString text = maybe "" (\pos -> snd $ T.splitAt (pos + 1) text) maybePos
   where maybePos = T.findIndex (== ' ') text
 
+-- | Picks a random element of a list
+-- Please ensure that the list has at least one element
+-- TODO: Make sure this doesn't fail
+choice :: [a] -> DiscordHandler a
+choice options = do
+  index <- lift $ randomRIO (0, length options - 1)
+  pure $ options !! index
+
 -- The commands!
 
 commandList :: [(Text, Message -> DiscordHandler ())]
@@ -51,6 +59,12 @@ commandList =
   , ("ekko"     , echo)
   , ("ping"     , ping)
   , ("roll"     , roll)
+  , ("cat"      , cats)
+  , ("cats"     , cats)
+  , ("katt"     , cats)
+  , ("katter"   , cats)
+  , ("quote"    , quote)
+  , ("sitat"    , quote)
   , ("help"     , help)
   , ("hjelp"    , help)
   , ("test"     , test)
@@ -72,6 +86,8 @@ execute m = do
 helpText =
   "`!echo <whatever>` sier det du vil tilbake, alias `ekko`\n\
   \`!roll` for å kaste terning\n\
+  \`!cats` for å se kattebilder (wip), alias `katt`\n\
+  \`!quote` for et sitat (wip), alias `sitat`\n\
   \`!blame` for å legge skylda på noen andre\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
   \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
@@ -100,8 +116,8 @@ blame m = do
   _ <- case members' of
     Right members -> do
       -- Pick a random user
-      index <- lift $ randomRIO (0, length members - 1)
-      let id = userId $ memberUser $ members !! index
+      member <- choice members
+      let id = userId $ memberUser member
       -- Then blame them!
       _ <- restCall
         ( R.CreateMessage (messageChannel m)
@@ -117,11 +133,24 @@ blame m = do
       pure ()
   pure ()
 
+cats m = do
+  cat <- choice E.cats
+  _   <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+    { createEmbedTitle       = "Kattebilde, liksom"
+    , createEmbedDescription = cat
+    }
+  pure ()
+
+quote m = do
+  _ <- restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+    { createEmbedDescription = "> Patch your shit\n- Donn Morrison, 2020"
+    }
+  pure ()
+
 lisp m = do
   let result = evalLisp $ T.unpack $ getArgString $ messageText m
-  errIndex <- lift $ randomRIO (0, length E.errs - 1)
-  let err = T.pack $ E.errs !! errIndex
-  _ <- case result of
+  err <- choice E.errs
+  _   <- case result of
     Left parseError ->
       restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
         { createEmbedTitle       = T.concat [err, " Parse error"]
@@ -145,11 +174,11 @@ lispHelp m = do
     { createEmbedTitle       = "Hvordan funker dette? :thinking:"
     , createEmbedDescription = T.concat
       [ "`(i (lisp er (alt mulig) (inne (i parenteser))))`\n\n\
-      \Prøv deg fram, noen funksjoner er vanlige symboler (+ 1 1) mens andre er emotes"
-      , " ("
+      \Prøv deg fram, noen funksjoner er vanlige symboler `(+ 1 1)` mens andre er emotes"
+      , " `("
       , T.pack E.list
-      , " 1 2 3).\n"
-      , "(og jeg gadd ikke å la dere jobbe med annet enn tall – enda)\n\n"
+      , " 1 2 3)`.\n"
+      , "(og jeg gadd ikke å la dere jobbe med annet enn lister og tall – enda)\n\n"
       , "Til slutt: Dette er _ikke_ en veldig sofistikert Lisp-variant, den har fint lite og ingenting."
       ]
     }
