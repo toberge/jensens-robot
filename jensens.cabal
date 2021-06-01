@@ -26,7 +26,11 @@ source-repository head
 library
   exposed-modules:
       Command
+      Emoji
       Language.Parser
+      Lisp.Eval
+      Lisp.Parser
+      Lisp.Types
   other-modules:
       Paths_jensens
   hs-source-dirs:

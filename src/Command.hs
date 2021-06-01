@@ -19,6 +19,10 @@ import           Discord.Types
 
 import           System.Random
 
+import qualified Emoji                         as E
+import           Lisp.Eval
+import           Lisp.Types
+
 -- Some helper functions
 
 isCommand :: Text -> Bool
@@ -48,6 +52,7 @@ commandList =
   , ("help" , help)
   , ("hjelp", help)
   , ("test" , test)
+  , ("lisp" , lisp)
   ]
 
 commands = M.fromList commandList
@@ -75,6 +80,29 @@ help m = do
 ping m = do
   _ <- restCall (R.CreateMessage (messageChannel m) "pong")
   pure ()
+
+lisp m = do
+  _ <- case result of
+    Left parseError ->
+      restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+        { createEmbedTitle       = T.concat [T.pack E.err, " Parse error"]
+        , createEmbedDescription = T.pack $ show parseError
+        }
+    Right (Err evalError) ->
+      restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+        { createEmbedTitle       = T.concat [T.pack E.err, " Runtime error"]
+        , createEmbedDescription = T.pack evalError
+        }
+    Right actualResult ->
+      restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+        { createEmbedTitle       = T.concat [T.pack E.done, " Result"]
+        , createEmbedDescription = T.concat
+          ["```lisp\n", T.pack (showAST actualResult), "\n```"]
+        }
+
+
+  pure ()
+  where result = evalLisp $ T.unpack $ getArgString $ messageText m
 
 echo m = do
   _ <- if length (T.words $ messageText m) > 1
