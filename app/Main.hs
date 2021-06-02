@@ -3,10 +3,6 @@
 
 module Main where
 
-import           Command
-import           Control.Monad                  ( unless
-                                                , when
-                                                )
 import           Control.Monad.Trans            ( lift )
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as TIO
@@ -14,6 +10,9 @@ import           Discord
 import qualified Discord.Requests              as R
 import           Discord.Types
 import           UnliftIO.Concurrent
+
+import           Commands
+import           Reactions
 
 -- For the time being, a lot of things are very similar to the discord-haskell example in its README
 -- and the ping-pong example.
@@ -43,35 +42,5 @@ startHandler = do
 
 eventHandler :: Event -> DiscordHandler ()
 eventHandler event = case event of
-  MessageCreate m -> unless (fromBot m) $ do
-    when (mentionsMe (messageText m)) $ do
-      restCall (R.CreateReaction (messageChannel m, messageId m) "eyes")
-      pure ()
-    -- threadDelay (4 * 10^6)
-    when (isCommand (messageText m)) $ do
-      execute m
-      pure ()
-
-  MessageReactionAdd r -> do
-    -- Handle bookmarking reactions (TODO split into its own file if it becomes big)
-    when (emojiName (reactionEmoji r) == "🔖") $ do
-      Right m <- restCall
-        $ R.GetChannelMessage (reactionChannelId r, reactionMessageId r)
-      let count = messageReactionCount
-            (head $ filter (\r -> emojiName (messageReactionEmoji r) == "🔖")
-                           (messageReactions m)
-            )
-      -- TODO check message content & make this have an actual effect
-      when (count > 4) $ do
-        restCall
-          (R.CreateMessage (reactionChannelId r) $ T.concat
-            [ "Sitatforslaget fra <@"
-            , T.pack $ show $ userId (messageAuthor m)
-            , "> bør legges til"
-            ]
-          )
-        pure ()
-
-
-fromBot :: Message -> Bool
-fromBot m = userIsBot (messageAuthor m)
+  MessageCreate      m -> messageHandler m  -- Commands.hs
+  MessageReactionAdd r -> reactionHandler r -- Reactions.hs

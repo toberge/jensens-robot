@@ -25,12 +25,13 @@ source-repository head
 
 library
   exposed-modules:
-      Command
+      Commands
       Emoji
       Lisp.Eval
       Lisp.Parser
       Lisp.Types
       Quotes
+      Reactions
   other-modules:
       Paths_jensens
   hs-source-dirs:
@@ -42,6 +43,7 @@ library
     , emoji
     , mtl
     , parsec
+    , process
     , random
     , text >=1.2.2
     , unliftio
@@ -62,6 +64,7 @@ executable jensens-bot
     , jensens
     , mtl
     , parsec
+    , process
     , random
     , text >=1.2.2
     , unliftio
@@ -83,6 +86,7 @@ test-suite jensens-test
     , jensens
     , mtl
     , parsec
+    , process
     , random
     , text >=1.2.2
     , unliftio

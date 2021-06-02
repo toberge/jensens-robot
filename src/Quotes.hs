@@ -7,18 +7,17 @@ import qualified Data.Text                     as T
 type Quote = (Text, Text)
 
 formatQuote :: Quote -> Text
-formatQuote (text, citation) = T.concat ["> ", text, "\n- ", citation]
+formatQuote (text, citation)
+  | text == ""     = "Fant ingen sitater! Legg til med `!nyttSitat`."
+  | citation == "" = T.concat ["> ", text]
+  | otherwise      = T.concat ["> ", text, "\n- ", citation]
 
-quotes :: [Quote]
-quotes =
-  [ ("Godt at datamaskinen gjør dette for oss", "Dag Olav, 2020")
-  , ("Patch your shit", "Donn Morrison, 18.09.2020")
-  , ("Gulrot"         , "Tore, 2021")
-  , ("Gulrot"         , "Tore, 2021")
-  , ( "Det fins alltid to måter å regne på: Min måte, og den enkle måten."
-    , "Øyvind Solberg, 2021"
-    )
-  ]
+readQuote :: Text -> Quote
+readQuote str = (text, citation)
+ where
+  idx      = T.findIndex (== ';') str
+  text     = T.strip $ maybe str (\i -> fst $ T.splitAt i str) idx
+  citation = T.strip $ maybe "" (\i -> snd $ T.splitAt (i + 1) str) idx
 
 donnJokes :: [Quote]
 donnJokes =

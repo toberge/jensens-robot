@@ -1,12 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Command
+module Commands
   ( isCommand
   , getCommand
+  , getArgString
   , mentionsMe
   , execute
+  , messageHandler
   ) where
 
+import           Control.Monad                  ( unless
+                                                , when
+                                                )
 import           Control.Monad.Trans            ( lift )
 import qualified Data.Map                      as M
 import           Data.Maybe
@@ -19,6 +24,7 @@ import           Discord
 import qualified Discord.Requests              as R
 import           Discord.Types
 
+import           System.Process
 import           System.Random
 
 import qualified Emoji                         as E
@@ -27,6 +33,9 @@ import           Lisp.Types
 import           Quotes
 
 -- Some helper functions
+
+fromBot :: Message -> Bool
+fromBot m = userIsBot (messageAuthor m)
 
 isCommand :: Text -> Bool
 isCommand = ("!" `T.isPrefixOf`)
@@ -52,6 +61,17 @@ choice options = do
   index <- lift $ randomRIO (0, length options - 1)
   pure $ options !! index
 
+-- Event handler
+
+messageHandler m = unless (fromBot m) $ do
+  when (mentionsMe (messageText m)) $ do
+    restCall (R.CreateReaction (messageChannel m, messageId m) "eyes")
+    pure ()
+  -- threadDelay (4 * 10^6)
+  when (isCommand (messageText m)) $ do
+    execute m
+    pure ()
+
 -- The commands!
 
 commandList :: [(Text, Message -> DiscordHandler ())]
@@ -65,7 +85,9 @@ commandList =
   , ("katt"     , cats)
   , ("katter"   , cats)
   , ("quote"    , quote)
+  , ("newQuote" , newQuote)
   , ("sitat"    , quote)
+  , ("nyttSitat", newQuote)
   , ("donn"     , donn)
   , ("help"     , help)
   , ("hjelp"    , help)
@@ -89,7 +111,8 @@ helpText =
   "`!echo <whatever>` sier det du vil tilbake, alias `ekko`\n\
   \`!roll` for å kaste terning\n\
   \`!cats` for å se kattebilder (wip), alias `katt`\n\
-  \`!quote` for et sitat (wip), alias `sitat`\n\
+  \`!quote` for et sitat, alias `sitat`\n\
+  \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `nyttSitat`\n\
   \`!blame` for å legge skylda på noen andre\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
   \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
@@ -144,8 +167,17 @@ cats m = do
   pure ()
 
 quote m = do
-  pickedQuote <- choice quotes
-  restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
+  -- pickedQuote <- choice quotes
+  pickedQuote <- lift $ readCreateProcess (shell "shuf -n 1 quotes") ""
+  restCall $ R.CreateMessage (messageChannel m)
+                             (formatQuote $ readQuote $ T.pack pickedQuote)
+  pure ()
+
+newQuote m = do
+  restCall $ R.CreateReaction (messageChannel m, messageId m) ":bookmark:"
+  restCall $ R.CreateMessage
+    (messageChannel m)
+    "Reager med :bookmark: på meldinga ovenfor for å støtte forslaget"
   pure ()
 
 donn m = do
