@@ -89,6 +89,8 @@ commandList =
   , ("sitat"    , quote)
   , ("nyttSitat", newQuote)
   , ("donn"     , donn)
+  , ("suggest"  , suggest)
+  , ("foreslå"  , suggest)
   , ("help"     , help)
   , ("hjelp"    , help)
   , ("test"     , test)
@@ -108,15 +110,16 @@ execute m = do
   msg = T.concat [T.pack E.bonk, " ", cmd, " er ingen kommando – prøv !hjelp"]
 
 helpText =
-  "`!echo <whatever>` sier det du vil tilbake, alias `ekko`\n\
+  "`!echo <whatever>` sier det du vil tilbake, alias `!ekko`\n\
   \`!roll` for å kaste terning\n\
-  \`!cats` for å se kattebilder (wip), alias `katt`\n\
-  \`!quote` for et sitat, alias `sitat`\n\
-  \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `nyttSitat`\n\
+  \`!cats` for å se kattebilder (wip), alias `!katt`\n\
+  \`!quote` for et sitat, alias `!sitat`\n\
+  \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`\n\
   \`!blame` for å legge skylda på noen andre\n\
+  \`!suggest` for å foreslå en endring på serveren, alias `!foreslå`\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
   \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
-  \`!ping` ... pong"
+  \- og et par andre kommandoer, kanskje <:gr:814410373724897281>"
 
 reportError err m = do
   restCall (R.CreateMessage (messageChannel m) err)
@@ -156,6 +159,13 @@ blame m = do
         $ T.concat [T.pack $ show code, " ", msg, " ", extra]
         )
       pure ()
+  pure ()
+
+suggest m = do
+  restCall
+    $ R.CreateReaction (messageChannel m, messageId m) ":white_check_mark:"
+  restCall $ R.CreateReaction (messageChannel m, messageId m)
+                              ":negative_squared_cross_mark:"
   pure ()
 
 cats m = do
