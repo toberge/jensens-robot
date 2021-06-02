@@ -13,10 +13,13 @@ import           Control.Monad                  ( unless
                                                 , when
                                                 )
 import           Control.Monad.Trans            ( lift )
+import           Data.Aeson                     ( decode )
+import           Data.ByteString.Builder        ( toLazyByteString )
 import qualified Data.Map                      as M
 import           Data.Maybe
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
+import           Data.Text.Encoding             ( encodeUtf8Builder )
 import qualified Data.Text.IO                  as TIO
 import           Text.Printf
 
@@ -27,9 +30,11 @@ import           Discord.Types
 import           System.Process
 import           System.Random
 
+import           Config
 import qualified Emoji                         as E
 import           Lisp.Eval
 import           Lisp.Types
+import           McStatus
 import           Quotes
 
 -- Some helper functions
@@ -63,18 +68,18 @@ choice options = do
 
 -- Event handler
 
-messageHandler m = unless (fromBot m) $ do
+messageHandler c m = unless (fromBot m) $ do
   when (mentionsMe (messageText m)) $ do
     restCall (R.CreateReaction (messageChannel m, messageId m) "eyes")
     pure ()
   -- threadDelay (4 * 10^6)
   when (isCommand (messageText m)) $ do
-    execute m
+    execute c m
     pure ()
 
 -- The commands!
 
-commandList :: [(Text, Message -> DiscordHandler ())]
+commandList :: [(Text, Config -> Message -> DiscordHandler ())]
 commandList =
   [ ("echo"     , echo)
   , ("ekko"     , echo)
@@ -91,6 +96,7 @@ commandList =
   , ("donn"     , donn)
   , ("suggest"  , suggest)
   , ("foreslå"  , suggest)
+  , ("mc"       , mcStatus)
   , ("help"     , help)
   , ("hjelp"    , help)
   , ("test"     , test)
@@ -102,8 +108,8 @@ commandList =
 
 commands = M.fromList commandList
 
-execute m = do
-  maybe (reportError msg m) (\f -> f m) res
+execute c m = do
+  maybe (reportError msg m) (\f -> f c m) res
  where
   res = M.lookup cmd commands
   cmd = getCommand $ messageText m
@@ -117,6 +123,7 @@ helpText =
   \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`\n\
   \`!blame` for å legge skylda på noen andre\n\
   \`!suggest` for å foreslå en endring på serveren, alias `!foreslå`\n\
+  \`!mc` viser status for Minecraft-serveren\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
   \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
   \- og et par andre kommandoer, kanskje <:gr:814410373724897281>"
@@ -125,18 +132,18 @@ reportError err m = do
   restCall (R.CreateMessage (messageChannel m) err)
   pure ()
 
-help m = do
+help c m = do
   restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Rørleggeren støtter følgende kommandoer:"
     , createEmbedDescription = helpText
     }
   pure ()
 
-ping m = do
+ping c m = do
   restCall (R.CreateMessage (messageChannel m) "pong")
   pure ()
 
-blame m = do
+blame c m = do
   members' <- restCall
     (R.ListGuildMembers (fromJust $ messageGuild m)
                         (R.GuildMembersTiming (Just 100) Nothing)
@@ -161,14 +168,14 @@ blame m = do
       pure ()
   pure ()
 
-suggest m = do
+suggest c m = do
   restCall
     $ R.CreateReaction (messageChannel m, messageId m) ":white_check_mark:"
   restCall $ R.CreateReaction (messageChannel m, messageId m)
                               ":negative_squared_cross_mark:"
   pure ()
 
-cats m = do
+cats c m = do
   cat <- choice E.cats
   restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Kattebilde, liksom"
@@ -176,26 +183,56 @@ cats m = do
     }
   pure ()
 
-quote m = do
+quote c m = do
   -- pickedQuote <- choice quotes
   pickedQuote <- lift $ readCreateProcess (shell "shuf -n 1 quotes") ""
   restCall $ R.CreateMessage (messageChannel m)
                              (formatQuote $ readQuote $ T.pack pickedQuote)
   pure ()
 
-newQuote m = do
+newQuote c m = do
   restCall $ R.CreateReaction (messageChannel m, messageId m) ":bookmark:"
   restCall $ R.CreateMessage
     (messageChannel m)
     "Reager med :bookmark: på meldinga ovenfor for å støtte forslaget"
   pure ()
 
-donn m = do
+donn c m = do
   pickedQuote <- choice donnJokes
   restCall $ R.CreateMessage (messageChannel m) (formatQuote pickedQuote)
   pure ()
 
-lisp m = do
+mcStatus c m = do
+  Right sm <- restCall
+    $ R.CreateMessage (messageChannel m) "Sjekker status, vent litt..."
+  rawStatus <- lift $ readCreateProcess
+    (shell $ "mcstatus " ++ T.unpack (configMcServer c) ++ " json")
+    ""
+  let status =
+        fromMaybe unknownMcStatus
+        $ decode
+        $ toLazyByteString
+        $ encodeUtf8Builder
+        $ T.pack rawStatus :: McStatus
+  let playerText = T.concat
+        [ T.pack $ show $ mcPlayerCount status
+        , "/"
+        , T.pack $ show $ mcPlayerMax status
+        ]
+  let onlineText = if mcIsOnline status
+        then T.concat ["Online ", E.gamerfargen]
+        else T.concat ["Offline ", E.brumm]
+  restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+    { createEmbedTitle       = T.concat [E.minecraft, " ", configMcServer c]
+    , createEmbedDescription = mcMotd status
+    , createEmbedFields      = [ EmbedField "Status"   onlineText (Just True)
+                               , EmbedField "Spillere" playerText (Just True)
+                               ]
+    }
+  restCall $ R.DeleteMessage (messageChannel sm, messageId sm)
+  pure ()
+
+lisp c m = do
   let result = evalLisp $ T.unpack $ getArgString $ messageText m
   err <- choice E.errs
   case result of
@@ -217,7 +254,7 @@ lisp m = do
         }
   pure ()
 
-lispHelp m = do
+lispHelp c m = do
   restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Hvordan funker dette? :thinking:"
     , createEmbedDescription = T.concat
@@ -232,7 +269,7 @@ lispHelp m = do
     }
   pure ()
 
-echo m = do
+echo c m = do
   if length (T.words $ messageText m) > 1
     then restCall
       (R.CreateMessage (messageChannel m) (getArgString (messageText m)))
@@ -240,7 +277,7 @@ echo m = do
       (R.CreateMessage (messageChannel m) "Trenger et argument, kamerat")
   pure ()
 
-roll m = do
+roll c m = do
   num <- lift $ randomRIO (1, 6 :: Int)
   restCall
     (R.CreateMessage (messageChannel m)
@@ -248,7 +285,7 @@ roll m = do
     )
   pure ()
 
-test m = do
+test c m = do
   restCall
     (R.CreateMessageEmbed (messageChannel m) "" $ def
       { createEmbedTitle       = "Jensens rørleggerservice"

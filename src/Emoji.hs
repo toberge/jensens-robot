@@ -33,6 +33,15 @@ done = "<:donn:836899970330001408>"
 nope = "<:bonk:804639608415191041>"
 bonk = "<:bonk:804639608415191041>"
 
+brumm :: Text
+brumm = "<:brumm:806467395694231604>"
+
+gamerfargen :: Text
+gamerfargen = "<:gamerfargen:692675820812107806>"
+
+minecraft :: Text
+minecraft = "<:minecraft:825679622002704414>"
+
 -- | Lisp functions
 
 plus = "+"

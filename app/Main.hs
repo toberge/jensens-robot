@@ -4,6 +4,9 @@
 module Main where
 
 import           Control.Monad.Trans            ( lift )
+import           Data.Aeson
+import           Data.ByteString.Lazy          as BS
+import           Data.Maybe
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as TIO
 import           Discord
@@ -12,7 +15,9 @@ import           Discord.Types
 import           UnliftIO.Concurrent
 
 import           Commands
+import           Config
 import           Reactions
+
 
 -- For the time being, a lot of things are very similar to the discord-haskell example in its README
 -- and the ping-pong example.
@@ -20,10 +25,11 @@ import           Reactions
 main :: IO ()
 main = do
   TIO.putStrLn "Bot starting!"
-  token           <- TIO.readFile "./auth-token.secret"
-  userFacingError <- runDiscord $ def { discordToken   = token
+  rawConfig <- BS.readFile "./app/config.json"
+  let config = fromJust $ decode rawConfig
+  userFacingError <- runDiscord $ def { discordToken   = configAuthToken config
                                       , discordOnStart = startHandler
-                                      , discordOnEvent = eventHandler
+                                      , discordOnEvent = eventHandler config
                                       }
   TIO.putStrLn userFacingError
 
@@ -40,7 +46,7 @@ startHandler = do
                               }
   sendCommand (UpdateStatus opts)
 
-eventHandler :: Event -> DiscordHandler ()
-eventHandler event = case event of
-  MessageCreate      m -> messageHandler m  -- Commands.hs
+eventHandler :: Config -> Event -> DiscordHandler ()
+eventHandler c event = case event of
+  MessageCreate      m -> messageHandler c m  -- Commands.hs
   MessageReactionAdd r -> reactionHandler r -- Reactions.hs

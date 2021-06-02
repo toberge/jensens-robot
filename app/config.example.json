@@ -1,0 +1,5 @@
+{
+  "authToken": "<your bot's auth token>",
+  "prefix": "<custom prefix for commands",
+  "mcServer": "<host of MC server>"
+}

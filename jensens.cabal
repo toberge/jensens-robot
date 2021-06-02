@@ -26,10 +26,12 @@ source-repository head
 library
   exposed-modules:
       Commands
+      Config
       Emoji
       Lisp.Eval
       Lisp.Parser
       Lisp.Types
+      McStatus
       Quotes
       Reactions
   other-modules:
@@ -37,7 +39,9 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
     , containers
     , discord-haskell
     , emoji
@@ -57,7 +61,9 @@ executable jensens-bot
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
     , containers
     , discord-haskell
     , emoji
@@ -79,7 +85,9 @@ test-suite jensens-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
     , containers
     , discord-haskell
     , emoji

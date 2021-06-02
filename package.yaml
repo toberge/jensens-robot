@@ -30,6 +30,8 @@ dependencies:
 - random
 - mtl
 - process
+- aeson
+- bytestring
 
 library:
   source-dirs: src
