@@ -1,0 +1,25 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Upgrade stack
+        run: |
+          sudo stack upgrade
+      - name: Build binary
+        run: |
+          export
+          stack install
+      - name: Archive binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: executable
+          path: /home/runner/.local/bin/jensens-bot

@@ -1,0 +1,10 @@
+[Unit]
+Description=Jensens rørleggerrobot
+After=network.target
+
+[Service]
+WorkingDirectory=/home/ubuntu/jensens
+ExecStart=/home/ubuntu/jensens/jensens-bot
+
+[Install]
+WantedBy=default.target
