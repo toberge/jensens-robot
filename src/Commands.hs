@@ -78,10 +78,7 @@ messageHandler c m = unless (fromBot m) $ do
 
 commandList :: [(Text, Config -> Message -> DiscordHandler ())]
 commandList =
-  [ ("echo"     , echo)
-  , ("ekko"     , echo)
-  , ("ping"     , ping)
-  , ("roll"     , roll)
+  [ ("roll"     , roll)
   , ("cat"      , cats)
   , ("cats"     , cats)
   , ("katt"     , cats)
@@ -96,7 +93,7 @@ commandList =
   , ("mc"       , mcStatus)
   , ("help"     , help)
   , ("hjelp"    , help)
-  , ("test"     , test)
+  , ("about"    , about)
   , ("blame"    , blame)
   , ("lisp"     , lisp)
   , ("lispHelp" , lispHelp)
@@ -113,13 +110,12 @@ execute c m = do
   msg = T.concat [T.pack E.bonk, " ", cmd, " er ingen kommando – prøv !hjelp"]
 
 helpText =
-  "`!echo <whatever>` sier det du vil tilbake, alias `!ekko`\n\
-  \`!roll` for å kaste terning\n\
+  "`!roll` for å kaste terning\n\
   \`!cats` for å se kattebilder (wip), alias `!katt`\n\
   \`!quote` for et sitat, alias `!sitat`\n\
   \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`\n\
   \`!blame` for å legge skylda på noen andre\n\
-  \`!suggest` for å foreslå en endring på serveren, alias `!foreslå`\n\
+  \`!suggest <forslag>` for å foreslå en endring på serveren, alias `!foreslå`\n\
   \`!mc` viser status for Minecraft-serveren\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
   \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
@@ -134,10 +130,6 @@ help c m = do
     { createEmbedTitle       = "Rørleggeren støtter følgende kommandoer:"
     , createEmbedDescription = helpText
     }
-  pure ()
-
-ping c m = do
-  restCall (R.CreateMessage (messageChannel m) "pong")
   pure ()
 
 blame c m = do
@@ -266,14 +258,6 @@ lispHelp c m = do
     }
   pure ()
 
-echo c m = do
-  if length (T.words $ messageText m) > 1
-    then restCall
-      (R.CreateMessage (messageChannel m) (getArgString (messageText m)))
-    else restCall
-      (R.CreateMessage (messageChannel m) "Trenger et argument, kamerat")
-  pure ()
-
 roll c m = do
   num <- lift $ randomRIO (1, 6 :: Int)
   restCall
@@ -282,7 +266,7 @@ roll c m = do
     )
   pure ()
 
-test c m = do
+about c m = do
   restCall
     (R.CreateMessageEmbed (messageChannel m) "" $ def
       { createEmbedTitle       = "Jensens rørleggerservice"

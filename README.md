@@ -16,7 +16,6 @@ Kjør `stack build` for å bygge, `stack run` for å starte boten.
 
 ## Kommandoer
 
-+ `!echo <whatever>` sier det du vil tilbake, alias `!ekko`
 + `!roll` for å kaste terning
 + `!cats` for å se kattebilder (wip), alias `!katt`
 + `!quote` for et sitat, alias `!sitat`
