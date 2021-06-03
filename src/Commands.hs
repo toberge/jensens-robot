@@ -19,7 +19,6 @@ import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 import           Data.Text.Encoding             ( encodeUtf8Builder )
 import qualified Data.Text.IO                  as TIO
-import           Text.Printf
 
 import           Discord
 import qualified Discord.Requests              as R
@@ -204,7 +203,7 @@ mcStatus c m = do
   Right sm <- restCall
     $ R.CreateMessage (messageChannel m) "Sjekker status, vent litt..."
   rawStatus <- lift $ readCreateProcess
-    (shell $ "mcstatus " ++ T.unpack (configMcServer c) ++ " json")
+    (proc "mcstatus" [T.unpack (configMcServer c), "json"])
     ""
   let status =
         fromMaybe unknownMcStatus

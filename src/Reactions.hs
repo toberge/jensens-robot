@@ -22,7 +22,7 @@ import           Commands                       ( getArgString
                                                 )
 
 reactionHandler r = do
-    -- Handle bookmarking reactions
+  -- Handle bookmarking reactions
   when (emojiName (reactionEmoji r) == "🔖") $ do
     Right m <- restCall
       $ R.GetChannelMessage (reactionChannelId r, reactionMessageId r)
@@ -40,9 +40,8 @@ reactionHandler r = do
           let quote = getArgString text
           -- Ascertain that the quote has not been posted before
           (exitCode, _, _) <- lift $ readCreateProcessWithExitCode
-            (shell $ "grep '" ++ T.unpack quote ++ "' quotes")
+            (proc "grep" [T.unpack quote, "quotes"])
             ""
-          lift $ TIO.putStrLn $ T.pack $ show exitCode
           when (exitCode /= ExitSuccess) $ do
             -- If the quote has not been added before, add it!
             lift $ TIO.appendFile "quotes" $ T.concat [quote, "\n"]
