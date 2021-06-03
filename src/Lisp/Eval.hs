@@ -78,8 +78,8 @@ lispMultiOp name op = fun
 lispNot [Boo bool] = Boo $ not bool
 lispNot [ast     ] = case eval ast of
   (Boo bool) -> Boo $ not bool
-  _          -> Err "not kan bare brukes på boolske verdier"
-lispNot _ = Err "not trenger ett argument"
+  _          -> Err $ E.nope ++ " kan bare brukes på boolske verdier"
+lispNot _ = Err $ E.nope ++ " trenger ett argument"
 
 lispList = Lst . map eval
 
@@ -91,10 +91,11 @@ lispSize _ = Err "Kan bare finne størrelsen til én ting"
 lispReverse [node] = case eval node of
   (Lst xs) -> Lst $ reverse xs
   _        -> Err "Kan ikke reversere noe som ikke er ei liste"
-lispReverse _ = Err "Kan bare reversere én liste"
+lispReverse _ = Err "Kan bare reversere ei liste, verken mer eller mindre"
 
-lispMember [x', list'] | isList list && isValid x = Boo $ elem x $ getList list
-                       | otherwise = Err "Requires an element and a list"
+lispMember [x', list']
+  | isList list && isValid x = Boo $ elem x $ getList list
+  | otherwise = Err $ E.member ++ " kan bare brukes på element og liste"
  where
   list = eval list'
   x    = eval x'
@@ -110,9 +111,9 @@ lispIf [Boo x, a]    = if x then a else Nul
 lispIf [Boo x, a, b] = if x then a else b
 lispIf (x : xs)      = case res of
   bool@(Boo _) -> lispIf (bool : xs)
-  _            -> Err "`hvis` krever boolsk verdi som første argument"
+  _            -> Err $ E.whatIf ++ " krever boolsk verdi som første argument"
   where res = eval x
-lispIf _ = Err "Ugyldig argument til `hvis`"
+lispIf _ = Err $ "Ugyldig argument til " ++ E.whatIf
 
 builtinList :: [(String, [AST] -> AST)]
 builtinList =
@@ -147,9 +148,9 @@ showAST (Sym x   ) = x
 showAST (I32 x   ) = show x
 showAST (Boo bool) = map toLower $ show bool
 showAST Nul        = "null"
-showAST (Nod x []) = '(' : showAST x ++ ")"
-showAST (Nod x xs) = '(' : showAST x ++ " " ++ unwords (map showAST xs) ++ ")"
-showAST (Lst xs  ) = "(list " ++ unwords (map showAST xs) ++ ")"
+showAST (Nod x []) = concat ["(", showAST x, ")"]
+showAST (Nod x xs) = concat ["(", showAST x, " ", unwords (map showAST xs), ")"]
+showAST (Lst xs  ) = concat ["(list ", unwords (map showAST xs), ")"]
 showAST (Err x   ) = E.err ++ " " ++ x
 
 evalLisp :: String -> Either ParseError AST

@@ -6,12 +6,12 @@ cabal-version: 1.12
 
 name:           jensens
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/jensens#readme>
-homepage:       https://github.com/githubuser/jensens#readme
-bug-reports:    https://github.com/githubuser/jensens/issues
-author:         Author name here
+description:    Please see the README on GitHub at <https://github.com/toberge/jensens-robot#readme>
+homepage:       https://github.com/toberge/jensens-robot#readme
+bug-reports:    https://github.com/toberge/jensens-robot/issues
+author:         Tore Bergebakken
 maintainer:     example@example.com
-copyright:      2021 Author name here
+copyright:      2021 Tore Bergebakken
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -21,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/jensens
+  location: https://github.com/toberge/jensens-robot
 
 library
   exposed-modules:
@@ -38,6 +38,8 @@ library
       Paths_jensens
   hs-source-dirs:
       src
+  default-extensions:
+      OverloadedStrings
   build-depends:
       aeson
     , base >=4.7 && <5
@@ -59,6 +61,8 @@ executable jensens-bot
       Paths_jensens
   hs-source-dirs:
       app
+  default-extensions:
+      OverloadedStrings
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -83,6 +87,8 @@ test-suite jensens-test
       Paths_jensens
   hs-source-dirs:
       test
+  default-extensions:
+      OverloadedStrings
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson

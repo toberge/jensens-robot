@@ -1,6 +1,3 @@
--- allows "string literals" to be Text
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
 import           Control.Monad.Trans            ( lift )

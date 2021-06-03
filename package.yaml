@@ -1,10 +1,10 @@
 name:                jensens
 version:             0.1.0.0
-github:              "githubuser/jensens"
+github:              "toberge/jensens-robot"
 license:             BSD3
-author:              "Author name here"
+author:              "Tore Bergebakken"
 maintainer:          "example@example.com"
-copyright:           "2021 Author name here"
+copyright:           "2021 Tore Bergebakken"
 
 extra-source-files:
 - README.md
@@ -17,7 +17,10 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/jensens#readme>
+description:         Please see the README on GitHub at <https://github.com/toberge/jensens-robot#readme>
+
+default-extensions:
+- OverloadedStrings # Since it'd be enabled in most files anyway
 
 dependencies:
 - base >= 4.7 && < 5

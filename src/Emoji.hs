@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Emoji where
 
 import           Data.Text                      ( Text )

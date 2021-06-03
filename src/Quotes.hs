@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Quotes where
 
 import           Data.Text                      ( Text )

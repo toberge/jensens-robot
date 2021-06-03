@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module McStatus where
 
 import           Data.Aeson
