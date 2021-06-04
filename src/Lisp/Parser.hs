@@ -10,6 +10,7 @@ import           Data.List                      ( find
 import           Text.ParserCombinators.Parsec
 import           Text.Printf
 
+import qualified Emoji                         as E
 import           Lisp.Types
 
 -- TODO refactor to Text
@@ -18,7 +19,7 @@ parseLispMaybe :: String -> Maybe AST
 parseLispMaybe = rightToMaybe . parseLisp
 
 parseLisp :: String -> Either ParseError AST
-parseLisp = parse parseAST "(what)"
+parseLisp = parse parseAST "(jensens lisp)"
 
 rightToMaybe :: Either a b -> Maybe b
 rightToMaybe (Left  _  ) = Nothing
@@ -44,7 +45,7 @@ parseAST = do
 parseList :: Parser AST
 parseList = do
   lexeme $ char '('
-  lexeme $ string "list"
+  lexeme $ string E.list
   values <- many $ lexeme parseExpr
   lexeme $ char ')'
   return $ Lst values
@@ -78,7 +79,7 @@ parseNumber = do
 
 parseNul :: Parser AST
 parseNul = do
-  string "null" <|> parseEmptyBrackets
+  string E.null <|> parseEmptyBrackets
   return Nul
 
 parseEmptyBrackets :: Parser String
@@ -89,5 +90,5 @@ parseEmptyBrackets = do
 
 parseBool :: Parser AST
 parseBool = do
-  value <- string "true" <|> string "false"
-  return $ Boo $ value == "true"
+  value <- string E.true <|> string E.false
+  return $ Boo $ value == E.true

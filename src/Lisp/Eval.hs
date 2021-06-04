@@ -149,9 +149,10 @@ showAST (I32 x   ) = show x
 showAST (Boo bool) = map toLower $ show bool
 showAST Nul        = "null"
 showAST (Nod x []) = concat ["(", showAST x, ")"]
-showAST (Nod x xs) = concat ["(", showAST x, " ", unwords (map showAST xs), ")"]
-showAST (Lst xs  ) = concat ["(list ", unwords (map showAST xs), ")"]
-showAST (Err x   ) = E.err ++ " " ++ x
+showAST (Nod x xs) =
+  concat ["(", showAST x, " ", unwords (map showAST xs), ")"]
+showAST (Lst xs) = concat ["(list ", unwords (map showAST xs), ")"]
+showAST (Err x ) = E.err ++ " " ++ x
 
 evalLisp :: String -> Either ParseError AST
 evalLisp = fmap eval . parseLisp

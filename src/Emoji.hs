@@ -48,6 +48,10 @@ times = "*"
 divide = "/"
 power = "^"
 
+true = "<:gladeric:803249241953665034>"
+false = "<:lejosstor:692329957162090577>"
+null = "<:shrek:692318521354354728>"
+
 equal = "<:round:707185921379795025>"
 greater = "<:gr:814410373724897281>"
 less = "<:hamstar:717345501682466852>"
