@@ -2,9 +2,17 @@
 Description=Jensens rørleggerrobot
 After=network.target
 
+# Limit how often and how many times the service can attempt a restart
+StartLimitIntervalSec=600
+StartLimitBurst=6
+
 [Service]
 WorkingDirectory=/home/ubuntu/jensens
 ExecStart=/home/ubuntu/jensens/jensens-bot
+
+# Restart x seconds after failure
+Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=default.target
