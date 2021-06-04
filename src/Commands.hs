@@ -92,6 +92,7 @@ commandList =
   , ("donn"     , donn)
   , ("suggest"  , suggest)
   , ("foreslå"  , suggest)
+  , ("forslag"  , suggest)
   , ("mc"       , mcStatus)
   , ("help"     , help)
   , ("hjelp"    , help)
@@ -121,7 +122,7 @@ helpText =
   \`!blame <noen>` for å legge skylda på noen (andre)\n\
   \`!hug <noen>` for å gi noen en klem, alias `!klem`\n\
   \`!blame` og `!hug` kan også kalles uten argumenter, da plukker de ut en tilfeldig person\n\
-  \`!suggest <forslag>` for å foreslå en endring på serveren, alias `!foreslå`\n\
+  \`!suggest <forslag>` for å foreslå en endring på serveren, alias `!forslag`\n\
   \`!mc` viser status for Minecraft-serveren\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
   \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
@@ -293,7 +294,8 @@ about c m = do
   restCall
     (R.CreateMessageEmbed (messageChannel m) "" $ def
       { createEmbedTitle       = "Jensens rørleggerservice"
-      , createEmbedDescription = "Vi leverer bare rør"
+      , createEmbedDescription =
+        "Vi leverer bare rør. Les mer [her](https://rørleggerjensen.no/)."
       , createEmbedThumbnail   =
         Just
           $ CreateEmbedImageUrl
@@ -302,9 +304,10 @@ about c m = do
         Just
           $ CreateEmbedImageUrl
               "https://files.solvecms.com/test/7311e68/medium/jensen%20r%C3%B8rleggerservice%20logo.jpg?v=1519740759023"
-      , createEmbedFields      = [ EmbedField "Dette" "er"   (Just True)
-                                 , EmbedField "en"    "test" (Just True)
-                                 , EmbedField "eller" "hva?" (Just True)
+      , createEmbedFields      = [ EmbedField "Stiftet" "2014" (Just True)
+                                 , EmbedField "Vi tilbyr"
+                                              "rørlegging og sånt"
+                                              (Just True)
                                  ]
       }
     )

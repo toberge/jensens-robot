@@ -23,7 +23,7 @@ Kjør `stack build` for å bygge, `stack run` for å starte boten.
 + `!blame <noen>` for å legge skylda på noen (andre)
 + `!hug <noen>` for å gi noen en klem, alias `!klem`
   + `!blame` og `!hug` kan også kalles uten argumenter, da plukker de ut en tilfeldig person
-+ `!suggest` for å foreslå en endring på serveren, alias `!foreslå`
++ `!suggest` for å foreslå en endring på serveren, alias `!forslag`
 + `!mc` viser status for Minecraft-serveren
 + `!lisp <kode>` for å kjøre litt Lisp
 + `!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er
