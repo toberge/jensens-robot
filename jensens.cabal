@@ -34,6 +34,7 @@ library
       McStatus
       Quotes
       Reactions
+      Utils
   other-modules:
       Paths_jensens
   hs-source-dirs:

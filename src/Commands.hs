@@ -13,8 +13,10 @@ import           Control.Monad                  ( unless
 import           Control.Monad.Trans            ( lift )
 import           Data.Aeson                     ( decode )
 import           Data.ByteString.Builder        ( toLazyByteString )
+import           Data.List                      ( find )
 import qualified Data.Map                      as M
 import           Data.Maybe
+import           Data.Semigroup
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 import           Data.Text.Encoding             ( encodeUtf8Builder )
@@ -33,11 +35,9 @@ import           Lisp.Eval
 import           Lisp.Types
 import           McStatus
 import           Quotes
+import           Utils
 
 -- Some helper functions
-
-fromBot :: Message -> Bool
-fromBot m = userIsBot (messageAuthor m)
 
 isCommand :: Text -> Bool
 isCommand = ("!" `T.isPrefixOf`)
@@ -52,7 +52,9 @@ getCommand :: Text -> Text
 getCommand = T.drop 1 . head . T.words
 
 getArgString :: Text -> Text
-getArgString text = maybe "" (\pos -> snd $ T.splitAt (pos + 1) text) maybePos
+getArgString text = maybe ""
+                          (\pos -> T.strip $ snd $ T.splitAt (pos + 1) text)
+                          maybePos
   where maybePos = T.findIndex (== ' ') text
 
 -- | Picks a random element of a list
@@ -95,6 +97,8 @@ commandList =
   , ("hjelp"    , help)
   , ("about"    , about)
   , ("blame"    , blame)
+  , ("hug"      , hug)
+  , ("klem"     , hug)
   , ("lisp"     , lisp)
   , ("lispHelp" , lispHelp)
   , ("lispHjelp", lispHelp)
@@ -114,7 +118,9 @@ helpText =
   \`!cats` for å se kattebilder (wip), alias `!katt`\n\
   \`!quote` for et sitat, alias `!sitat`\n\
   \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`\n\
-  \`!blame` for å legge skylda på noen andre\n\
+  \`!blame <noen>` for å legge skylda på noen (andre)\n\
+  \`!hug <noen>` for å gi noen en klem, alias `!klem`\n\
+  \`!blame` og `!hug` kan også kalles uten argumenter, da plukker de ut en tilfeldig person\n\
   \`!suggest <forslag>` for å foreslå en endring på serveren, alias `!foreslå`\n\
   \`!mc` viser status for Minecraft-serveren\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
@@ -132,29 +138,46 @@ help c m = do
     }
   pure ()
 
+pickOrMention m = do
+  let arg = getArgString (messageText m)
+  if (arg == "") || not (isMention arg)
+    then do
+      Right members <- restCall
+        (R.ListGuildMembers (fromJust $ messageGuild m)
+                            (R.GuildMembersTiming (Just 100) Nothing)
+        )
+      if arg == ""
+        then do
+          -- Pick a random user
+          member <- choice members
+          pure $ mention $ memberUser member
+        else do
+          -- Search for user
+          let query  = T.toLower arg
+          let member = find (isThatUser query) members
+          pure $ maybe ("**" <> arg <> "**") (mention . memberUser) member
+    else do -- is a mention, use it!
+      pure arg
+ where
+  isThatUser query m = maybe False ((== query) . T.toLower) (memberNick m)
+    || ((== query) . T.toLower) (userName $ memberUser m)
+
 blame c m = do
-  members' <- restCall
-    (R.ListGuildMembers (fromJust $ messageGuild m)
-                        (R.GuildMembersTiming (Just 100) Nothing)
+  -- Pick a member or use mention
+  mention <- pickOrMention m
+  -- Then blame them!
+  restCall
+    (R.CreateMessage (messageChannel m) $ T.concat [mention, " har skylda"])
+  pure ()
+
+hug c m = do
+  -- Pick a member or use mention
+  mention <- pickOrMention m
+  -- Then hug them ⊂((・▽・))⊃
+  restCall
+    ( R.CreateMessage (messageChannel m)
+    $ T.concat [mentionAuthor m, " ga ", mention, " en klem"]
     )
-  case members' of
-    Right members -> do
-      -- Pick a random user
-      member <- choice members
-      let id = userId $ memberUser member
-      -- Then blame them!
-      restCall
-        ( R.CreateMessage (messageChannel m)
-        $ T.concat ["<@", T.pack $ show id, ">", " har skylda"]
-        )
-      pure ()
-    Left (RestCallErrorCode code msg extra) -> do
-      -- Just display the error...
-      restCall
-        ( R.CreateMessage (messageChannel m)
-        $ T.concat [T.pack $ show code, " ", msg, " ", extra]
-        )
-      pure ()
   pure ()
 
 suggest c m = do

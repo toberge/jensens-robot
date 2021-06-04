@@ -20,7 +20,9 @@ Kjør `stack build` for å bygge, `stack run` for å starte boten.
 + `!cats` for å se kattebilder (wip), alias `!katt`
 + `!quote` for et sitat, alias `!sitat`
 + `!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`
-+ `!blame` for å legge skylda på noen andre
++ `!blame <noen>` for å legge skylda på noen (andre)
++ `!hug <noen>` for å gi noen en klem, alias `!klem`
+  + `!blame` og `!hug` kan også kalles uten argumenter, da plukker de ut en tilfeldig person
 + `!suggest` for å foreslå en endring på serveren, alias `!foreslå`
 + `!mc` viser status for Minecraft-serveren
 + `!lisp <kode>` for å kjøre litt Lisp
