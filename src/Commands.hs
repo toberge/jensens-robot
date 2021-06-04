@@ -141,27 +141,22 @@ help c m = do
 
 pickOrMention m = do
   let arg = getArgString (messageText m)
-  if (arg == "") || not (isMention arg)
+  if arg == ""
     then do
       Right members <- restCall
         (R.ListGuildMembers (fromJust $ messageGuild m)
                             (R.GuildMembersTiming (Just 100) Nothing)
         )
-      if arg == ""
-        then do
-          -- Pick a random user
-          member <- choice members
-          pure $ mention $ memberUser member
-        else do
-          -- Search for user
-          let query  = T.toLower arg
-          let member = find (isThatUser query) members
-          pure $ maybe ("**" <> arg <> "**") (mention . memberUser) member
-    else do -- is a mention, use it!
-      pure arg
- where
-  isThatUser query m = maybe False ((== query) . T.toLower) (memberNick m)
-    || ((== query) . T.toLower) (userName $ memberUser m)
+      member <- choice members
+      pure
+        $ maybe ("**" <> userName (memberUser member) <> "**")
+                (\nick -> "**" <> nick <> "**")
+        $ memberNick member
+    else if isMention arg
+      then do -- is a mention, use it!
+        pure arg
+      else do -- is not a mention, just make it bold
+        pure $ "**" <> arg <> "**"
 
 blame c m = do
   -- Pick a member or use mention
@@ -189,12 +184,13 @@ suggest c m = do
   pure ()
 
 cats c m = do
-  cat <- choice E.cats
+  catUrl <- lift $ readCreateProcess (shell "shuf -n 1 cats") ""
   restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
-    { createEmbedTitle       = "Kattebilde, liksom"
-    , createEmbedDescription = cat
+    { createEmbedTitle = "Kattebilde, liksom"
+    , createEmbedImage = Just $ CreateEmbedImageUrl $ T.pack catUrl
     }
   pure ()
+
 
 quote c m = do
   -- pickedQuote <- choice quotes
