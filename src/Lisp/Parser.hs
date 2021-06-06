@@ -7,18 +7,23 @@ import           Data.Char                      ( toLower )
 import           Data.List                      ( find
                                                 , intercalate
                                                 )
-import           Text.ParserCombinators.Parsec
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as T
+import           Text.Parsec
 import           Text.Printf
 
 import qualified Emoji                         as E
 import           Lisp.Types
 
--- TODO refactor to Text
+type Parser = Parsec Text ()
+type GenParser t st = Parsec Text st
 
-parseLispMaybe :: String -> Maybe AST
+text = string . T.unpack
+
+parseLispMaybe :: Text -> Maybe AST
 parseLispMaybe = rightToMaybe . parseLisp
 
-parseLisp :: String -> Either ParseError AST
+parseLisp :: Text -> Either ParseError AST
 parseLisp = parse parseAST "(jensens lisp)"
 
 rightToMaybe :: Either a b -> Maybe b
@@ -45,7 +50,7 @@ parseAST = do
 parseList :: Parser AST
 parseList = do
   lexeme $ char '('
-  lexeme $ string E.list
+  lexeme $ text E.list
   values <- many $ lexeme parseExpr
   lexeme $ char ')'
   return $ Lst values
@@ -68,9 +73,9 @@ parseExpr = do
 
 parseSymbol :: Parser AST
 parseSymbol = do
-  start <- noneOf $ " ,\n\t\r()" ++ ['0' .. '9']
+  start <- noneOf $ " ,\n\t\r()" <> ['0' .. '9']
   rest  <- many $ noneOf " ,\n\t\r()"
-  return $ Sym $ start : rest
+  return $ Sym $ T.pack $ start : rest
 
 parseNumber :: Parser AST
 parseNumber = do
@@ -79,7 +84,7 @@ parseNumber = do
 
 parseNul :: Parser AST
 parseNul = do
-  string E.null <|> parseEmptyBrackets
+  text E.null <|> parseEmptyBrackets
   return Nul
 
 parseEmptyBrackets :: Parser String
@@ -90,5 +95,5 @@ parseEmptyBrackets = do
 
 parseBool :: Parser AST
 parseBool = do
-  value <- string E.true <|> string E.false
-  return $ Boo $ value == E.true
+  value <- text E.true <|> text E.false
+  return $ Boo $ value == T.unpack E.true

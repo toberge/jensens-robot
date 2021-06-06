@@ -114,7 +114,7 @@ execute c m = do
  where
   res = M.lookup cmd commands
   cmd = getCommand $ messageText m
-  msg = T.concat [T.pack E.bonk, " ", cmd, " er ingen kommando – prøv !hjelp"]
+  msg = T.concat [E.bonk, " ", cmd, " er ingen kommando – prøv !hjelp"]
 
 helpText =
   "`!roll` for å kaste terning\n\
@@ -255,7 +255,7 @@ mcStatus c m = do
   pure ()
 
 lisp c m = do
-  let result = evalLisp $ T.unpack $ getArgString $ messageText m
+  let result = evalLisp $ getArgString $ messageText m
   err <- choice E.errs
   case result of
     Left parseError ->
@@ -266,13 +266,13 @@ lisp c m = do
     Right (Err evalError) ->
       restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
         { createEmbedTitle       = T.concat [err, " Runtime error"]
-        , createEmbedDescription = T.pack evalError
+        , createEmbedDescription = evalError
         }
     Right actualResult ->
       restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
-        { createEmbedTitle       = T.concat [T.pack E.done, " Result"]
+        { createEmbedTitle       = T.concat [E.done, " Result"]
         , createEmbedDescription = T.concat
-          ["```lisp\n", T.pack (showAST actualResult), "\n```"]
+          ["```lisp\n", showAST actualResult, "\n```"]
         }
   pure ()
 
@@ -283,7 +283,7 @@ lispHelp c m = do
       [ "`(i (lisp er (alt mulig) (inne (i parenteser))))`\n\n\
       \Prøv deg fram, noen funksjoner er vanlige symboler `(+ 1 1)` mens andre er emotes"
       , " `("
-      , T.pack E.list
+      , E.list
       , " 1 2 3)`.\n"
       , "(og jeg gadd ikke å la dere jobbe med annet enn lister og tall – enda)\n\n"
       , "Til slutt: Dette er _ikke_ en veldig sofistikert Lisp-variant, den har fint lite og ingenting."

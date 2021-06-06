@@ -8,7 +8,10 @@ module Lisp.Eval
 import           Data.Char                      ( toLower )
 import           Data.List                      ( find )
 import qualified Data.Map                      as M
-import           Text.ParserCombinators.Parsec  ( ParseError )
+import           Data.Semigroup
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as T
+import           Text.Parsec                    ( ParseError )
 
 import qualified Emoji                         as E
 import           Lisp.Parser
@@ -22,7 +25,7 @@ import           Lisp.Types
 -- -- -- Functions -- -- --
 
 eval :: AST -> AST
-eval (Nod (Sym sym) args) = maybe (Err $ sym ++ " er ingen kjent funksjon")
+eval (Nod (Sym sym) args) = maybe (Err $ sym <> " er ingen kjent funksjon")
                                   (\f -> f args)
                                   fun
   where fun = M.lookup sym builtins
@@ -43,7 +46,7 @@ lispBinaryOp name op = fun
   fun [Err x, _    ] = Err x
   fun [_    , Err x] = Err x
   fun [a    , b    ] = fun [evalNumber a, evalNumber b]
-  fun _              = Err $ name ++ " trenger to tall"
+  fun _              = Err $ name <> " trenger to tall"
 
 -- Wrapper for binary ops, but generic
 lispBinaryOpGeneric name op = fun
@@ -52,7 +55,7 @@ lispBinaryOpGeneric name op = fun
   fun [Err x, _    ] = Err x
   fun [_    , Err x] = Err x
   fun [a    , b    ] = fun [evalNumber a, evalNumber b]
-  fun _              = Err $ name ++ " trenger to tall"
+  fun _              = Err $ name <> " trenger to tall"
 
 isI32 (I32 _) = True
 isI32 _       = False
@@ -67,19 +70,19 @@ getList (Lst xs) = xs
 getList _        = [Err "wtf"]
 
 -- Wrapper for binary functions that should work on multiple values
-lispMultiOp :: String -> (Int -> Int -> Int) -> ([AST] -> AST)
+lispMultiOp :: Text -> (Int -> Int -> Int) -> ([AST] -> AST)
 lispMultiOp name op = fun
  where
-  fun [] = Err $ name ++ " trenger argumenter"
+  fun [] = Err $ name <> " trenger argumenter"
   fun xs' | all isI32 xs = I32 $ foldl1 op $ map (\(I32 x) -> x) xs
-          | otherwise    = Err $ name ++ " kan bare motta tall som argumenter"
+          | otherwise    = Err $ name <> " kan bare motta tall som argumenter"
     where xs = map eval xs'
 
 lispNot [Boo bool] = Boo $ not bool
 lispNot [ast     ] = case eval ast of
   (Boo bool) -> Boo $ not bool
-  _          -> Err $ E.nope ++ " kan bare brukes på boolske verdier"
-lispNot _ = Err $ E.nope ++ " trenger ett argument"
+  _          -> Err $ E.nope <> " kan bare brukes på boolske verdier"
+lispNot _ = Err $ E.nope <> " trenger ett argument"
 
 lispList = Lst . map eval
 
@@ -95,7 +98,7 @@ lispReverse _ = Err "Kan bare reversere ei liste, verken mer eller mindre"
 
 lispMember [x', list']
   | isList list && isValid x = Boo $ elem x $ getList list
-  | otherwise = Err $ E.member ++ " kan bare brukes på element og liste"
+  | otherwise = Err $ E.member <> " kan bare brukes på element og liste"
  where
   list = eval list'
   x    = eval x'
@@ -111,11 +114,11 @@ lispIf [Boo x, a]    = if x then a else Nul
 lispIf [Boo x, a, b] = if x then a else b
 lispIf (x : xs)      = case res of
   bool@(Boo _) -> lispIf (bool : xs)
-  _            -> Err $ E.whatIf ++ " krever boolsk verdi som første argument"
+  _            -> Err $ E.whatIf <> " krever boolsk verdi som første argument"
   where res = eval x
-lispIf _ = Err $ "Ugyldig argument til " ++ E.whatIf
+lispIf _ = Err $ "Ugyldig argument til " <> E.whatIf
 
-builtinList :: [(String, [AST] -> AST)]
+builtinList :: [(Text, [AST] -> AST)]
 builtinList =
   [ (E.plus          , lispMultiOp E.plus (+))
   , (E.minus         , lispMultiOp E.minus (-))
@@ -143,19 +146,19 @@ builtinNames = map fst builtinList
 
 -- -- -- Evaluators -- -- --
 
-showAST :: AST -> String
+showAST :: AST -> Text
 showAST (Sym x   ) = x
-showAST (I32 x   ) = show x
-showAST (Boo bool) = map toLower $ show bool
+showAST (I32 x   ) = T.pack $ show x
+showAST (Boo bool) = T.pack $ map toLower $ show bool
 showAST Nul        = "null"
-showAST (Nod x []) = concat ["(", showAST x, ")"]
+showAST (Nod x []) = T.concat ["(", showAST x, ")"]
 showAST (Nod x xs) =
-  concat ["(", showAST x, " ", unwords (map showAST xs), ")"]
-showAST (Lst xs) = concat ["(list ", unwords (map showAST xs), ")"]
-showAST (Err x ) = E.err ++ " " ++ x
+  T.concat ["(", showAST x, " ", T.unwords (map showAST xs), ")"]
+showAST (Lst xs) = T.concat ["(list ", T.unwords (map showAST xs), ")"]
+showAST (Err x ) = E.err <> " " <> x
 
-evalLisp :: String -> Either ParseError AST
+evalLisp :: Text -> Either ParseError AST
 evalLisp = fmap eval . parseLisp
 
-evalLispToString :: String -> String
-evalLispToString = either show showAST . evalLisp
+evalLispToString :: Text -> Text
+evalLispToString = either (T.pack . show) showAST . evalLisp
