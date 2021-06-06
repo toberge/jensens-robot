@@ -97,6 +97,8 @@ commandList =
   , ("help"     , help)
   , ("hjelp"    , help)
   , ("about"    , about)
+  , ("github"   , github)
+  , ("git"      , github)
   , ("blame"    , blame)
   , ("hug"      , hug)
   , ("klem"     , hug)
@@ -126,6 +128,9 @@ helpText =
   \`!mc` viser status for Minecraft-serveren\n\
   \`!lisp <kode>` for å kjøre litt Lisp\n\
   \`!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er\n\
+  \`!about` for å se informasjon om denne serveren? Hvem vet?\n\
+  \`!github` leder deg til repoet for boten, alias `!git`\n\
+  \`!help` eller `!hjelp` for å se denne informasjonen igjen\n\
   \- og et par andre kommandoer, kanskje <:gr:814410373724897281>"
 
 reportError err m = do
@@ -136,6 +141,14 @@ help c m = do
   restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Rørleggeren støtter følgende kommandoer:"
     , createEmbedDescription = helpText
+    }
+  pure ()
+
+github c m = do
+  restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
+    { createEmbedTitle       = "Kildekoden finner du her:"
+    , createEmbedDescription =
+      "[github.com/toberge/jensens-robot](https://github.com/toberge/jensens-robot)"
     }
   pure ()
 
