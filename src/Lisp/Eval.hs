@@ -8,6 +8,7 @@ module Lisp.Eval
 import           Data.Char                      ( toLower )
 import           Data.List                      ( find )
 import qualified Data.Map                      as M
+import           Data.Maybe
 import           Data.Semigroup
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
@@ -24,38 +25,80 @@ import           Lisp.Types
 
 -- -- -- Functions -- -- --
 
-eval :: AST -> AST
-eval (Nod (Sym sym) args) = maybe (Err $ sym <> " er ingen kjent funksjon")
-                                  (\f -> f args)
-                                  fun
-  where fun = M.lookup sym builtins
-eval (Lst values) = Lst $ map eval values
-eval value        = value
+eval :: LispState -> AST -> AST
+eval s@LispState { localScope = locals, globalScope = globals } (Nod (Sym sym) args)
+  | sym `M.member` builtins -- Builtins are called directly
+  = maybe (Err $ sym <> " er ingen kjent funksjon") (\f -> f s args)
+    $ M.lookup sym builtins
+  | otherwise
+  = maybe -- User-defined functions must be evaluated themselves
+    (Err $ sym <> " er ingen kjent funksjon")
+    (evalFunctionCall s args)
+    (case localLookup of
+      Just f  -> Just f
+      Nothing -> Just =<< globalLookup
+    )
+ where
+  localLookup  = M.lookup sym locals
+  globalLookup = M.lookup sym globals
+eval s (Nod fun@Fun{}  args) = evalFunctionCall s args fun
+eval s (Nod node@Nod{} args) = case eval s node of
+  fun@Fun{} -> evalFunctionCall s args fun
+  _         -> Err "Invalid function call"
+eval s (Lst values) = Lst $ map (eval s) values
+eval s@LispState { localScope = locals, globalScope = globals } (Sym sym) =
+  fromMaybe -- Look for it!
+    (Err $ sym <> " er ikke en variabel")
+    (case localLookup of
+      Just f  -> Just f
+      Nothing -> Just =<< globalLookup
+    )
+ where
+  localLookup  = M.lookup sym locals
+  globalLookup = M.lookup sym globals
+eval _ value = value
 
-evalNumber :: AST -> AST
-evalNumber num@(I32 x) = num
-evalNumber ast         = case res of
-  num@(I32 x) -> num
-  _           -> Err "Trenger et tall"
-  where res = eval ast
+evalFunctionCall :: LispState -> [AST] -> AST -> AST
+evalFunctionCall s@LispState { localScope = locals } args (Fun argNames body)
+  | length args == length argNames = eval s { localScope = mergedScope } body
+  | otherwise = Err "Arguments given do not match arguments required"
+ where
+  mergedScope = M.union locals argMap
+  argMap      = M.fromList $ zipWith (\k v -> (k, eval s v)) argNames args
+
+lispLambda _ [Nod argHead argTail, body]
+  | all isSymbol args = Fun (map getSymbol args) body
+  | otherwise         = Err "Not all args in arg list are args"
+  where args = argHead : argTail
+lispLambda _ _ = Err $ "Wrong way to call " <> E.lambda
+
+isSymbol :: AST -> Bool
+isSymbol (Sym x) = True
+isSymbol _       = False
+
+getSymbol :: AST -> Text
+getSymbol (Sym x) = x
+getSymbol _       = error "Use isSymbol before getSymbol!"
 
 -- Wrapper for *boolean* ops
 lispBinaryOp name op = fun
  where
-  fun [I32 a, I32 b] = Boo $ op a b
-  fun [Err x, _    ] = Err x
-  fun [_    , Err x] = Err x
-  fun [a    , b    ] = fun [evalNumber a, evalNumber b]
-  fun _              = Err $ name <> " trenger to tall"
+  fun :: Builtin
+  fun _ [I32 a, I32 b] = Boo $ op a b
+  fun _ [Err x, _    ] = Err x
+  fun _ [_    , Err x] = Err x
+  fun s [a    , b    ] = fun s [eval s a, eval s b]
+  fun _ _              = Err $ name <> " trenger to tall"
 
 -- Wrapper for binary ops, but generic
 lispBinaryOpGeneric name op = fun
  where
-  fun [I32 a, I32 b] = op a b
-  fun [Err x, _    ] = Err x
-  fun [_    , Err x] = Err x
-  fun [a    , b    ] = fun [evalNumber a, evalNumber b]
-  fun _              = Err $ name <> " trenger to tall"
+  fun :: Builtin
+  fun _ [I32 a, I32 b] = op a b
+  fun _ [Err x, _    ] = Err x
+  fun _ [_    , Err x] = Err x
+  fun s [a    , b    ] = fun s [eval s a, eval s b]
+  fun _ _              = Err $ name <> " trenger to tall"
 
 isI32 (I32 _) = True
 isI32 _       = False
@@ -70,38 +113,38 @@ getList (Lst xs) = xs
 getList _        = [Err "wtf"]
 
 -- Wrapper for binary functions that should work on multiple values
-lispMultiOp :: Text -> (Int -> Int -> Int) -> ([AST] -> AST)
+lispMultiOp :: Text -> (Int -> Int -> Int) -> Builtin
 lispMultiOp name op = fun
  where
-  fun [] = Err $ name <> " trenger argumenter"
-  fun xs' | all isI32 xs = I32 $ foldl1 op $ map (\(I32 x) -> x) xs
-          | otherwise    = Err $ name <> " kan bare motta tall som argumenter"
-    where xs = map eval xs'
+  fun _ [] = Err $ name <> " trenger argumenter"
+  fun s xs' | all isI32 xs = I32 $ foldl1 op $ map (\(I32 x) -> x) xs
+            | otherwise    = Err $ name <> " kan bare motta tall som argumenter"
+    where xs = map (eval s) xs'
 
-lispNot [Boo bool] = Boo $ not bool
-lispNot [ast     ] = case eval ast of
+lispNot s [Boo bool] = Boo $ not bool
+lispNot s [ast     ] = case eval s ast of
   (Boo bool) -> Boo $ not bool
   _          -> Err $ E.nope <> " kan bare brukes på boolske verdier"
-lispNot _ = Err $ E.nope <> " trenger ett argument"
+lispNot _ _ = Err $ E.nope <> " trenger ett argument"
 
-lispList = Lst . map eval
+lispList s = Lst . map (eval s)
 
-lispSize [node] = case eval node of
+lispSize s [node] = case eval s node of
   (Lst xs) -> I32 $ length xs
   _        -> Err "Kan ikke finne størrelsen til noe som ikke er ei liste"
-lispSize _ = Err "Kan bare finne størrelsen til én ting"
+lispSize _ _ = Err "Kan bare finne størrelsen til én ting"
 
-lispReverse [node] = case eval node of
+lispReverse s [node] = case eval s node of
   (Lst xs) -> Lst $ reverse xs
   _        -> Err "Kan ikke reversere noe som ikke er ei liste"
-lispReverse _ = Err "Kan bare reversere ei liste, verken mer eller mindre"
+lispReverse _ _ = Err "Kan bare reversere ei liste, verken mer eller mindre"
 
-lispMember [x', list']
+lispMember s [x', list']
   | isList list && isValid x = Boo $ elem x $ getList list
   | otherwise = Err $ E.member <> " kan bare brukes på element og liste"
  where
-  list = eval list'
-  x    = eval x'
+  list = eval s list'
+  x    = eval s x'
 
 
 lispRange = lispBinaryOpGeneric ".." range
@@ -109,16 +152,16 @@ lispRange = lispBinaryOpGeneric ".." range
 
 lispPower = lispBinaryOpGeneric "^" pow where pow a b = I32 $ a ^ b
 
-lispIf :: [AST] -> AST
-lispIf [Boo x, a]    = if x then a else Nul
-lispIf [Boo x, a, b] = if x then a else b
-lispIf (x : xs)      = case res of
-  bool@(Boo _) -> lispIf (bool : xs)
+lispIf :: Builtin
+lispIf s [Boo x, a]    = if x then eval s a else Nul
+lispIf s [Boo x, a, b] = if x then eval s a else eval s b
+lispIf s (x : xs)      = case res of
+  bool@(Boo _) -> lispIf s (bool : xs)
   _            -> Err $ E.whatIf <> " krever boolsk verdi som første argument"
-  where res = eval x
-lispIf _ = Err $ "Ugyldig argument til " <> E.whatIf
+  where res = eval s x
+lispIf _ _ = Err $ "Ugyldig argument til " <> E.whatIf
 
-builtinList :: [(Text, [AST] -> AST)]
+builtinList :: [(Text, Builtin)]
 builtinList =
   [ (E.plus          , lispMultiOp E.plus (+))
   , (E.minus         , lispMultiOp E.minus (-))
@@ -138,6 +181,7 @@ builtinList =
   , (E.lessOrEqual   , lispBinaryOp E.lessOrEqual (<=))
   , (E.notEqual      , lispBinaryOp E.notEqual (/=))
   , (E.whatIf        , lispIf)
+  , (E.lambda        , lispLambda)
   ]
 
 builtins = M.fromList builtinList
@@ -158,7 +202,12 @@ showAST (Lst xs) = T.concat ["(list ", T.unwords (map showAST xs), ")"]
 showAST (Err x ) = E.err <> " " <> x
 
 evalLisp :: Text -> Either ParseError AST
-evalLisp = fmap eval . parseLisp
+evalLisp = fmap (eval initialState) . parseLisp
+ where
+  initialState = LispState { stateBuiltins = builtins
+                           , globalScope   = M.empty
+                           , localScope    = M.empty
+                           }
 
 evalLispToString :: Text -> Text
 evalLispToString = either (T.pack . show) showAST . evalLisp

@@ -63,4 +63,5 @@ range = "<:spillsyltetoy:718072970332995665>" :: Text
 reverse = "<:kat:821343254225485853>" :: Text
 member = "<:eg:803547525415567411>" :: Text
 
+lambda = "lambda" :: Text
 whatIf = "<:brumm:806467395694231604>" :: Text
