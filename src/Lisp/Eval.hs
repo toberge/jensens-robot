@@ -5,6 +5,7 @@ module Lisp.Eval
   , builtinNames
   ) where
 
+import           Control.Applicative
 import           Data.Char                      ( toLower )
 import           Data.List                      ( find )
 import qualified Data.Map                      as M
@@ -31,31 +32,17 @@ eval s@LispState { localScope = locals, globalScope = globals } (Nod (Sym sym) a
   = maybe (Err $ sym <> " er ingen kjent funksjon") (\f -> f s args)
     $ M.lookup sym builtins
   | otherwise
-  = maybe -- User-defined functions must be evaluated themselves
-    (Err $ sym <> " er ingen kjent funksjon")
-    (evalFunctionCall s args)
-    (case localLookup of
-      Just f  -> Just f
-      Nothing -> Just =<< globalLookup
-    )
- where
-  localLookup  = M.lookup sym locals
-  globalLookup = M.lookup sym globals
+  -- User-defined functions must be evaluated themselves
+  = fromMaybe (Err $ sym <> " er ingen kjent funksjon")
+              (M.lookup sym locals <|> M.lookup sym globals)
 eval s (Nod fun@Fun{}  args) = evalFunctionCall s args fun
 eval s (Nod node@Nod{} args) = case eval s node of
   fun@Fun{} -> evalFunctionCall s args fun
   _         -> Err "Invalid function call"
 eval s (Lst values) = Lst $ map (eval s) values
 eval s@LispState { localScope = locals, globalScope = globals } (Sym sym) =
-  fromMaybe -- Look for it!
-    (Err $ sym <> " er ikke en variabel")
-    (case localLookup of
-      Just f  -> Just f
-      Nothing -> Just =<< globalLookup
-    )
- where
-  localLookup  = M.lookup sym locals
-  globalLookup = M.lookup sym globals
+  fromMaybe (Err $ sym <> " er ikke en variabel")
+            (M.lookup sym locals <|> M.lookup sym globals)
 eval _ value = value
 
 evalFunctionCall :: LispState -> [AST] -> AST -> AST
