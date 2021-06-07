@@ -63,5 +63,7 @@ range = "<:spillsyltetoy:718072970332995665>" :: Text
 reverse = "<:kat:821343254225485853>" :: Text
 member = "<:eg:803547525415567411>" :: Text
 
-lambda = "lambda" :: Text
+setq = "<:jonsno:718055311642198136>" :: Text
+defn = "<:gamerfargen:692675820812107806>" :: Text
+lambda = "<:geir:692315910379274270>" :: Text
 whatIf = "<:brumm:806467395694231604>" :: Text

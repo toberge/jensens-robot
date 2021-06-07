@@ -27,14 +27,21 @@ import           Lisp.Types
 -- -- -- Functions -- -- --
 
 eval :: LispState -> AST -> AST
+eval s (Seq []            ) = Seq []
+-- TODO decide if all or only last in Seq should be the result! (important for possible use in function body...)
+eval s (Seq (node : nodes)) = case eval s node of
+  Sco globals -> eval s { globalScope = globals } (Seq nodes)
+  err@Err{}   -> err
+  whatever    -> Seq $ whatever : fromSeq (eval s (Seq nodes))
 eval s@LispState { localScope = locals, globalScope = globals } (Nod (Sym sym) args)
   | sym `M.member` builtins -- Builtins are called directly
   = maybe (Err $ sym <> " er ingen kjent funksjon") (\f -> f s args)
     $ M.lookup sym builtins
   | otherwise
   -- User-defined functions must be evaluated themselves
-  = fromMaybe (Err $ sym <> " er ingen kjent funksjon")
-              (M.lookup sym locals <|> M.lookup sym globals)
+  = maybe (Err $ sym <> " er ingen kjent funksjon")
+          (evalFunctionCall s args)
+          (M.lookup sym locals <|> M.lookup sym globals)
 eval s (Nod fun@Fun{}  args) = evalFunctionCall s args fun
 eval s (Nod node@Nod{} args) = case eval s node of
   fun@Fun{} -> evalFunctionCall s args fun
@@ -45,6 +52,11 @@ eval s@LispState { localScope = locals, globalScope = globals } (Sym sym) =
             (M.lookup sym locals <|> M.lookup sym globals)
 eval _ value = value
 
+fromSeq :: AST -> [AST]
+fromSeq (Seq nodes) = nodes
+fromSeq _           = error "Invalid use of fromSeq"
+
+-- TODO this should not be called when the symbol is a value
 evalFunctionCall :: LispState -> [AST] -> AST -> AST
 evalFunctionCall s@LispState { localScope = locals } args (Fun argNames body)
   | length args == length argNames = eval s { localScope = mergedScope } body
@@ -52,12 +64,29 @@ evalFunctionCall s@LispState { localScope = locals } args (Fun argNames body)
  where
   mergedScope = M.union locals argMap
   argMap      = M.fromList $ zipWith (\k v -> (k, eval s v)) argNames args
+evalFunctionCall _ _ err@Err{} = err
+evalFunctionCall _ _ _ =
+  Err "Unknown error in function call – is this a function?"
 
 lispLambda _ [Nod argHead argTail, body]
   | all isSymbol args = Fun (map getSymbol args) body
-  | otherwise         = Err "Not all args in arg list are args"
+  | otherwise         = Err $ E.defn <> ": Not all args in arg list are args"
   where args = argHead : argTail
 lispLambda _ _ = Err $ "Wrong way to call " <> E.lambda
+
+lispDefineFunction s@LispState { globalScope = globals } [Sym name, Nod argHead argTail, body]
+  | all isSymbol args
+  = Sco $ M.insert name fun globals
+  | otherwise
+  = Err $ E.defn <> ": Not all args in arg list are args"
+ where
+  args = argHead : argTail
+  fun  = Fun (map getSymbol args) body
+lispDefineFunction _ _ = Err $ "Wrong way to call " <> E.defn
+
+lispSetVariable s@LispState { globalScope = globals } [Sym name, value] =
+  Sco $ M.insert name value globals
+lispSetVariable _ _ = Err $ "Wrong way to call " <> E.setq
 
 isSymbol :: AST -> Bool
 isSymbol (Sym x) = True
@@ -169,6 +198,8 @@ builtinList =
   , (E.notEqual      , lispBinaryOp E.notEqual (/=))
   , (E.whatIf        , lispIf)
   , (E.lambda        , lispLambda)
+  , (E.defn          , lispDefineFunction)
+  , (E.setq          , lispSetVariable)
   ]
 
 builtins = M.fromList builtinList
@@ -178,11 +209,14 @@ builtinNames = map fst builtinList
 -- -- -- Evaluators -- -- --
 
 showAST :: AST -> Text
-showAST (Sym x   ) = x
-showAST (I32 x   ) = T.pack $ show x
-showAST (Boo bool) = T.pack $ map toLower $ show bool
-showAST Nul        = "null"
-showAST (Nod x []) = T.concat ["(", showAST x, ")"]
+showAST (Sco globals) = T.pack $ show globals
+showAST (Seq xs     ) = T.unlines $ map showAST xs
+showAST (Fun _ _    ) = "(function)"
+showAST (Sym x      ) = x
+showAST (I32 x      ) = T.pack $ show x
+showAST (Boo bool   ) = T.pack $ map toLower $ show bool
+showAST Nul           = "null"
+showAST (Nod x [])    = T.concat ["(", showAST x, ")"]
 showAST (Nod x xs) =
   T.concat ["(", showAST x, " ", T.unwords (map showAST xs), ")"]
 showAST (Lst xs) = T.concat ["(list ", T.unwords (map showAST xs), ")"]

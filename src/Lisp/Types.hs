@@ -11,6 +11,8 @@ data AST = I32 Int
          | Boo Bool
          | Nod AST [AST]
          | Fun [Text] AST
+         | Seq [AST]
+         | Sco Scope
          deriving (Eq, Show)
 
 type Scope = Map Text AST

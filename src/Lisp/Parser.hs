@@ -42,9 +42,14 @@ lexeme parser = do
 parseAST :: Parser AST
 parseAST = do
   whitespace
+  asts <- many1 parseSequence
+  eof
+  return $ Seq asts
+
+parseSequence :: Parser AST
+parseSequence = do
   ast <- parseExpr
   whitespace
-  eof
   return ast
 
 parseList :: Parser AST
