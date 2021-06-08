@@ -62,7 +62,7 @@ evalFunctionCall s@LispState { localScope = locals } args (Fun argNames body)
   | length args == length argNames = eval s { localScope = mergedScope } body
   | otherwise = Err "Arguments given do not match arguments required"
  where
-  mergedScope = M.union locals argMap
+  mergedScope = M.union argMap locals
   argMap      = M.fromList $ zipWith (\k v -> (k, eval s v)) argNames args
 evalFunctionCall _ _ err@Err{} = err
 evalFunctionCall _ _ _ =
