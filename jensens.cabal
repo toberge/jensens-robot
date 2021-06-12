@@ -35,6 +35,7 @@ library
       Quotes
       Reactions
       Utils
+      Utils.IO
   other-modules:
       Paths_jensens
   hs-source-dirs:

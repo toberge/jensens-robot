@@ -36,6 +36,7 @@ import           Lisp.Types
 import           McStatus
 import           Quotes
 import           Utils
+import           Utils.IO
 
 -- Some helper functions
 
@@ -58,12 +59,10 @@ getArgString text = maybe ""
   where maybePos = T.findIndex (== ' ') text
 
 -- | Picks a random element of a list
--- Please ensure that the list has at least one element
--- TODO: Make sure this doesn't fail
+-- Wrapper around randomChoice
 choice :: [a] -> DiscordHandler a
 choice options = do
-  index <- lift $ randomRIO (0, length options - 1)
-  pure $ options !! index
+  lift $ randomChoice options
 
 -- Event handler
 
@@ -119,7 +118,7 @@ execute c m = do
 helpText =
   "`!roll` for å kaste terning\n\
   \`!cats` for å se kattebilder (wip), alias `!katt`\n\
-  \`!quote` for et sitat, alias `!sitat`\n\
+  \`!quote <søketekst>` for et sitat, med valgfri innsnevring, alias `!sitat`\n\
   \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`\n\
   \`!blame <noen>` for å legge skylda på noen (andre)\n\
   \`!hug <noen>` for å gi noen en klem, alias `!klem`\n\
@@ -204,12 +203,21 @@ cats c m = do
     }
   pure ()
 
-
 quote c m = do
-  -- pickedQuote <- choice quotes
-  pickedQuote <- lift $ readCreateProcess (shell "shuf -n 1 quotes") ""
-  restCall $ R.CreateMessage (messageChannel m)
-                             (formatQuote $ readQuote $ T.pack pickedQuote)
+  -- pickedQuote <- lift $ readCreateProcess (shell "shuf -n 1 quotes") ""
+  let query = getArgString (messageText m)
+  pickedQuote <- if query == ""
+    then do
+      quote <- lift $ readCreateProcess (shell "shuf -n 1 quotes") ""
+      pure $ Just $ T.pack quote
+    else do
+      lift $ pickGrep "quotes" query
+  case pickedQuote of
+    Nothing -> do
+      restCall $ R.CreateMessage (messageChannel m) "Fant ikke noe sitat altså"
+    Just quote -> do
+      restCall
+        $ R.CreateMessage (messageChannel m) (formatQuote $ readQuote quote)
   pure ()
 
 newQuote c m = do

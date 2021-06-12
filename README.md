@@ -19,6 +19,7 @@ Kjør `stack build` for å bygge, `stack run` for å starte boten.
 + `!roll` for å kaste terning
 + `!cats` for å se kattebilder (wip), alias `!katt`
 + `!quote` for et sitat, alias `!sitat`
++ `!quote <søketekst>` for et sitat, med valgfri innsnevring, alias `!sitat`
 + `!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`
 + `!blame <noen>` for å legge skylda på noen (andre)
 + `!hug <noen>` for å gi noen en klem, alias `!klem`
@@ -27,3 +28,6 @@ Kjør `stack build` for å bygge, `stack run` for å starte boten.
 + `!mc` viser status for Minecraft-serveren
 + `!lisp <kode>` for å kjøre litt Lisp
 + `!lispHelp` hvis du ikke har den fjerneste anelse om hva Lisp er
++ `!about` for å se informasjon om denne serveren? Hvem vet?
++ `!github` leder deg til dette repoet, alias `!git`
++ `!help` eller `!hjelp` for å se en hjelpetekst med alle kommandoene
