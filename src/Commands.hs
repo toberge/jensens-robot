@@ -21,6 +21,7 @@ import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 import           Data.Text.Encoding             ( encodeUtf8Builder )
 import qualified Data.Text.IO                  as TIO
+import qualified Text.Read                     as TR
 
 import           Discord
 import qualified Discord.Requests              as R
@@ -300,12 +301,25 @@ lispHelp c m = do
   pure ()
 
 roll c m = do
-  num <- lift $ randomRIO (1, 6 :: Int)
-  restCall
-    (R.CreateMessage (messageChannel m)
-                     (T.concat [":game_die: **", T.pack $ show num, "**"])
-    )
+  let textDie = T.drop 1 $ getArgString $ messageText m
+  let die = TR.readMaybe $ T.unpack textDie
+  case die of
+    Just d -> do
+      num <- lift $ randomRIO (1, d :: Int)
+      restCall
+        (R.CreateMessage (messageChannel m)
+                         (T.concat [":game_die: **", T.pack $ show num, "**"])
+        )
+    Nothing -> do
+      restCall
+        (R.CreateMessage
+          (messageChannel m)
+          (T.concat ["Invalid die d", textDie])
+        )
   pure ()
+
+
+
 
 about c m = do
   restCall
