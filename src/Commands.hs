@@ -7,9 +7,11 @@ module Commands
   , messageHandler
   ) where
 
-import           Control.Monad                  ( unless
+import           Control.Monad                  ( replicateM
+                                                , unless
                                                 , when
                                                 )
+import           Control.Arrow                  ((***))
 import           Control.Monad.Trans            ( lift )
 import           Data.Aeson                     ( decode )
 import           Data.ByteString.Builder        ( toLazyByteString )
@@ -117,7 +119,7 @@ execute c m = do
   msg = T.concat [E.bonk, " ", cmd, " er ingen kommando – prøv !hjelp"]
 
 helpText =
-  "`!roll` for å kaste terning\n\
+  "`!roll dX` eller `!roll XdY` for å kaste terning\n\
   \`!cats` for å se kattebilder (wip), alias `!katt`\n\
   \`!quote <søketekst>` for et sitat, med valgfri innsnevring, alias `!sitat`\n\
   \`!newQuote <sitat> ; <opphav>` for å foreslå et sitat, alias `!nyttSitat`\n\
@@ -285,6 +287,7 @@ lisp c m = do
         }
   pure ()
 
+
 lispHelp c m = do
   restCall $ R.CreateMessageEmbed (messageChannel m) "" $ def
     { createEmbedTitle       = "Hvordan funker dette? :thinking:"
@@ -300,25 +303,39 @@ lispHelp c m = do
     }
   pure ()
 
+
 roll c m = do
-  let textDie = T.drop 1 $ getArgString $ messageText m
-  let die = TR.readMaybe $ T.unpack textDie
+  let text = getArgString $ messageText m
+  let die = ((TR.readMaybe . T.unpack) *** (TR.readMaybe . T.unpack . T.drop 1)) $ T.breakOn "d" text :: (Maybe Int, Maybe Int)
   case die of
-    Just d -> do
+    (Nothing, Just d) -> do
       num <- lift $ randomRIO (1, d :: Int)
       restCall
         (R.CreateMessage (messageChannel m)
                          (T.concat [":game_die: **", T.pack $ show num, "**"])
         )
-    Nothing -> do
+      pure ()
+    (Just n, Just d) -> do
+      when (n > 30 || n < 1) $ do
+        restCall
+          (R.CreateMessage (messageChannel m) "Slapp av litt nå, kompis. Dette her er ikke greit.")
+        pure ()
+      unless (n > 30 || n < 1) $ do
+        nums <- lift $ replicateM n $ randomRIO (1, d :: Int)
+        let strings = foldl1 (\x y -> T.concat [x, " + ", y]) $ map (\x -> T.concat ["**", T.pack $ show x, "**"]) nums
+        restCall
+          (R.CreateMessage (messageChannel m)
+                           (T.concat $ [":game_die: ", strings, " ", E.equal, " ", T.pack $ show $ sum nums])
+          )
+        pure ()
+    _ -> do
       restCall
         (R.CreateMessage
           (messageChannel m)
-          (T.concat ["Invalid die d", textDie])
+          (T.concat ["Invalid die ", text])
         )
+      pure ()
   pure ()
-
-
 
 
 about c m = do
